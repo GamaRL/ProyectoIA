@@ -1,0 +1,40 @@
+<Modal @ref="ModalRef" Animated>
+  <ModalContent Size="ModalSize.Large">
+    <ModalHeader>
+      <ModalTitle>File Content</ModalTitle>
+      <CloseButton />
+    </ModalHeader>
+    <ModalBody>
+
+      <ListGroup Flush>
+        @if (FileContent.Count == 2)
+        {
+          @foreach (var line in FileContent[0])
+          {
+            <ListGroupItem>
+              @String.Join(", ", line.ToArray())
+            </ListGroupItem>
+          }
+          <ListGroupItem>...</ListGroupItem>
+          @foreach (var line in FileContent[1])
+          {
+            <ListGroupItem>
+              @String.Join(", ", line.ToArray())
+            </ListGroupItem>
+          }
+        }
+      </ListGroup>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Secondary">Close</Button>
+      <Button Color="Color.Primary">Save Changes</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
+@code {
+  [Parameter]
+  public Modal ModalRef { get; set; }
+  [Parameter]
+  public List<List<List<string>>> FileContent { get; set; }
+}

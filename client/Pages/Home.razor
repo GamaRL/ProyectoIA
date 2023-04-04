@@ -1,0 +1,66 @@
+﻿@page "/home"
+@layout MainLayout
+
+@using System.Net.Http
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<Jumbotron Background="Background.Light" Margin="Margin.Is4.FromBottom">
+  <JumbotronTitle Size="JumbotronTitleSize.Is4">Welcome to AI Application
+  </JumbotronTitle>
+  <JumbotronSubtitle>
+    Artificial Intelligence Final Project
+  </JumbotronSubtitle>
+  <Paragraph>
+    In this application, the user is able to test and use the most common 
+    Artificial Intelligence algorithms in an interactive way. This application 
+    is built on <Text TextWeight="TextWeight.Bold">Blazor</Text>, a frontend 
+    technology based on <Text TextWeight="TextWeight.Bold">C#</Text>, driven 
+    by an API written in <Text TextWeight="TextWeight.Bold">Python</Text>, 
+    using <Text TextWeight="TextWeight.Bold">FastApi</Text>, a friendly web 
+    framework that helped us to develop a backend easily.
+  </Paragraph>
+  <Divider></Divider>
+  <Paragraph>
+    <ListGroup>
+      <ListGroupItem Color="Color.Info">
+        <Div Flex="Flex.JustifyContent.Between" Width="Width.Is100">
+          <Heading Size="HeadingSize.Is5" Margin="Margin.Is1.FromBottom" TextWeight="TextWeight.Bold">Authors
+          </Heading>
+        </Div>
+      </ListGroupItem>
+      <ListGroupItem>
+        <Div Flex="Flex.JustifyContent.Between" Width="Width.Is100">
+          <Heading Size="HeadingSize.Is5" Margin="Margin.Is1.FromBottom">Ríos
+            Lira, Gamaliel</Heading>
+          <Div>
+            <Link To="mailto:gamaliel.rios@ingenieria.unam.edu">
+            <Badge Color="Color.Info" Pill>
+              <Icon Name="IconName.Mail" />
+            </Badge>
+            </Link>
+          </Div>
+        </Div>
+        <Paragraph Margin="Margin.Is1.FromBottom">Faculty of Engineering, UNAM
+        </Paragraph>
+        <Small>Computer Engineering</Small>
+      </ListGroupItem>
+      <ListGroupItem>
+        <Div Flex="Flex.JustifyContent.Between" Width="Width.Is100">
+          <Heading Size="HeadingSize.Is5" Margin="Margin.Is1.FromBottom">Sánchez
+            Hernández, Marco Antonio</Heading>
+          <Div>
+            <Link To="mailto:marco.sanchez.hdez.333@gmail.com">
+            <Badge Color="Color.Info" Pill>
+              <Icon Name="IconName.Mail" />
+            </Badge>
+            </Link>
+          </Div>
+        </Div>
+        <Paragraph Margin="Margin.Is1.FromBottom">Faculty of Engineering, UNAM
+        </Paragraph>
+        <Small>Computer Engineering</Small>
+      </ListGroupItem>
+    </ListGroup>
+  </Paragraph>
+</Jumbotron>

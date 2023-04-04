@@ -1,0 +1,96 @@
+@page "/algorithms/association-rules"
+
+
+@inject IJSRuntime JsRuntime;
+@inject IAssociationRulesService AssociationRulesServ;
+
+<Container Fluid>
+  <h1>Algorithm usage</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is8">
+      <Div>
+      <Field>
+        <Select TValue="int" @bind-SelectedValue="@selectedFileId">
+          @foreach (var file in uploadedFiles)
+          {
+            <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+          }
+        </Select>
+      </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is2">
+      <Button Clicked="@GetFrequencies" Color="Color.Info">Frequencies</Button>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is2">
+      <Button Clicked="@GetAssociationRules" Color="Color.Primary">Get Rules</Button>
+    </Column>
+  </Row>
+    @if(rules.Count > 0)
+    {
+    <ListGroup Flush>
+      <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+        <Text TextWeight="TextWeight.Bold">Found Association Rules</Text>
+        <Div>
+          <Badge Color="Color.Info" Pill>Support</Badge>
+          <Badge Color="Color.Warning" Pill>Confidence</Badge>
+          <Badge Color="Color.Primary" Pill>Lift</Badge>
+        </Div>
+      </ListGroupItem>
+      @foreach (var item in rules)
+      {
+      <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+        @item.Antecedent -> @item.Consequent
+        <Div>
+          <Badge Color="Color.Info" Pill>@item.Support</Badge>
+          <Badge Color="Color.Warning" Pill>@item.Confidence</Badge>
+          <Badge Color="Color.Primary" Pill>@item.Lift</Badge>
+        </Div>
+      </ListGroupItem>
+      }
+    </ListGroup>
+    }
+  <Row>
+    <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
+      <Div id="chart_div"></Div>
+    </Column>
+  </Row>
+</Container>
+
+@code {
+  private List<FileModel> uploadedFiles = new();
+  private List<FrequencyAnalysisResponse> frequencies = new();
+  private List<AssociationRulesResponse> rules = new();
+  private int selectedFileId;
+
+  private float minConfidence = 0.5f, minSupport = 0.01f, minLift = 1.1f;
+
+  protected override async Task OnInitializedAsync()
+  {
+    this.uploadedFiles.AddRange(await AssociationRulesServ.GetFiles());
+    selectedFileId = this.uploadedFiles.First().Id;
+
+    await base.OnInitializedAsync();
+    StateHasChanged();
+  }
+
+  private async void GetFrequencies()
+  {
+    this.frequencies.Clear();
+    var response = await this.AssociationRulesServ.GetFrequencies(selectedFileId);
+    this.frequencies.AddRange(response);
+
+    await JsRuntime.InvokeVoidAsync("createPlot", this.frequencies);
+    StateHasChanged();
+  }
+
+  private async void GetAssociationRules()
+  {
+    this.rules.Clear();
+    var response = await AssociationRulesServ.GetAssociationRules(selectedFileId,
+    minSupport, minConfidence, minLift);
+
+    this.rules.AddRange(response);
+    StateHasChanged();
+  }
+}

@@ -1,0 +1,23 @@
+﻿@inherits LayoutComponentBase
+
+<Layout Sider>
+    <LayoutSider>
+        <LayoutSiderContent>
+            <aside>
+                <SideBar/>
+            </aside>
+        </LayoutSiderContent>
+    </LayoutSider>
+    <Layout>
+        <LayoutHeader Fixed>
+            <Client.Components.NavBar/>
+        </LayoutHeader>
+        <LayoutContent>
+            <Container>
+                <main class="mt-5">
+                    @Body
+                </main>
+            </Container>
+        </LayoutContent>
+    </Layout>
+</Layout>

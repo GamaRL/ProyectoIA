@@ -1,0 +1,59 @@
+<Bar Mode="BarMode.VerticalInline" CollapseMode="BarCollapseMode.Small"
+  Breakpoint="Breakpoint.Desktop" NavigationBreakpoint="Breakpoint.Tablet"
+  ThemeContrast="ThemeContrast.Dark">
+  <BarToggler />
+  <BarBrand>
+    <BarItem>
+      <BarLink To="/">
+        <BarIcon IconName="IconName.Code"></BarIcon>
+        AI App
+      </BarLink>
+    </BarItem>
+  </BarBrand>
+  <BarMenu>
+    <BarStart>
+      <BarItem>
+        <BarLink To="/home">
+          <BarIcon IconName="IconName.Home"></BarIcon>
+          Home
+        </BarLink>
+      </BarItem>
+      <BarItem>
+        <BarDropdown>
+          <BarDropdownToggle>
+            <BarIcon IconName="IconName.LayerGroup" />
+              Association Rules
+          </BarDropdownToggle>
+          <BarDropdownMenu>
+            <BarDropdownItem To="/algorithms/association-rules">
+              <BarIcon IconName="IconName.Code" />
+              Algorithm
+            </BarDropdownItem>
+            <BarDropdownItem To="/algorithms/association-rules/files">
+              <BarIcon IconName="IconName.Folder" />
+              Files
+            </BarDropdownItem>
+            <BarDropdownItem To="/algorithms/association-rules/results">
+              <BarIcon IconName="IconName.Book" />
+              Results
+            </BarDropdownItem>
+          </BarDropdownMenu>
+        </BarDropdown>
+        <BarDropdown>
+          <BarDropdownToggle>
+            <BarIcon IconName="IconName.List" />
+            Algorithms
+          </BarDropdownToggle>
+          <BarDropdownMenu>
+            <BarDropdownItem To="/algorithms/association-rules">
+              Association Rules
+            </BarDropdownItem>
+            <BarDropdownItem To="/home">
+              Another algorithm
+            </BarDropdownItem>
+          </BarDropdownMenu>
+        </BarDropdown>
+      </BarItem>
+    </BarStart>
+  </BarMenu>
+</Bar>

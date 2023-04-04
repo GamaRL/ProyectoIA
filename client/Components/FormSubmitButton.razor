@@ -1,0 +1,11 @@
+<Button Type="ButtonType.Submit" Color="Color.Success" Disabled="IsDisabled"
+  Clicked="ClickHandler">
+    Login
+  </Button>
+
+  @code {
+  [Parameter]
+  public bool IsDisabled { get; set; }
+  [Parameter]
+  public EventCallback<MouseEventArgs> ClickHandler { get; set; }
+}

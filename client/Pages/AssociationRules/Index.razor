@@ -1,6 +1,5 @@
 @page "/algorithms/association-rules"
 
-
 @inject IJSRuntime JsRuntime;
 @inject IAssociationRulesService AssociationRulesServ;
 
@@ -9,47 +8,68 @@
   <Row>
     <Column ColumnSize="ColumnSize.Is8">
       <Div>
-      <Field>
-        <Select TValue="int" @bind-SelectedValue="@selectedFileId">
-          @foreach (var file in uploadedFiles)
-          {
-            <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
-          }
-        </Select>
-      </Field>
+        <Field>
+          <Select TValue="int" @bind-SelectedValue="@selectedFileId">
+            @foreach (var file in uploadedFiles)
+            {
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+            }
+          </Select>
+        </Field>
       </Div>
     </Column>
     <Column ColumnSize="ColumnSize.Is2">
       <Button Clicked="@GetFrequencies" Color="Color.Info">Frequencies</Button>
     </Column>
     <Column ColumnSize="ColumnSize.Is2">
-      <Button Clicked="@GetAssociationRules" Color="Color.Primary">Get Rules</Button>
+      <Button Clicked="@GetAssociationRules" Color="Color.Primary">Get
+        Rules</Button>
     </Column>
   </Row>
-    @if(rules.Count > 0)
-    {
+  <Row>
+    <Column ColumnSize="ColumnSize.Is4">
+      Support: @minSupport %
+      <Field>
+        <Slider @bind-Value="@minSupport" Step="0.5f" TValue="float" Min="1" Max="10"/>
+      </Field>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is4">
+      Confidence: @minConfidence %
+      <Field>
+        <Slider @bind-Value="@minConfidence" Step="1" TValue="float" Min="1" Max="100" />
+      </Field>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is4">
+      Lift: @minLift
+      <Field>
+        <Slider @bind-Value="@minLift" Step="1" TValue="float" Min="1" Max="10" />
+      </Field>
+    </Column>
+  </Row>
+  @if (rules.Count > 0)
+  {
     <ListGroup Flush>
-      <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
-        <Text TextWeight="TextWeight.Bold">Found Association Rules</Text>
-        <Div>
-          <Badge Color="Color.Info" Pill>Support</Badge>
-          <Badge Color="Color.Warning" Pill>Confidence</Badge>
-          <Badge Color="Color.Primary" Pill>Lift</Badge>
-        </Div>
-      </ListGroupItem>
-      @foreach (var item in rules)
+    <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+      <Text TextWeight="TextWeight.Bold">Found Association Rules</Text>
+      <Div>
+        <Badge Color="Color.Info" Pill>Support</Badge>
+        <Badge Color="Color.Warning" Pill>Confidence</Badge>
+        <Badge Color="Color.Primary" Pill>Lift</Badge>
+      </Div>
+    </ListGroupItem>
+    @foreach (var item in rules)
       {
-      <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
-        @item.Antecedent -> @item.Consequent
-        <Div>
-          <Badge Color="Color.Info" Pill>@item.Support</Badge>
-          <Badge Color="Color.Warning" Pill>@item.Confidence</Badge>
-          <Badge Color="Color.Primary" Pill>@item.Lift</Badge>
+        <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
+          @item.Antecedent -> @item.Consequent
+          <Div>
+            <Badge Color="Color.Info" Pill>@item.Support</Badge>
+            <Badge Color="Color.Warning" Pill>@item.Confidence</Badge>
+            <Badge Color="Color.Primary" Pill>@item.Lift</Badge>
         </Div>
       </ListGroupItem>
       }
     </ListGroup>
-    }
+  }
   <Row>
     <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
       <Div id="chart_div"></Div>
@@ -63,7 +83,7 @@
   private List<AssociationRulesResponse> rules = new();
   private int selectedFileId;
 
-  private float minConfidence = 0.5f, minSupport = 0.01f, minLift = 1.1f;
+  private float minConfidence = 1f, minSupport = 1f, minLift = 2f;
 
   protected override async Task OnInitializedAsync()
   {
@@ -88,7 +108,7 @@
   {
     this.rules.Clear();
     var response = await AssociationRulesServ.GetAssociationRules(selectedFileId,
-    minSupport, minConfidence, minLift);
+    minSupport / 100, minConfidence / 100, minLift + 0.01f);
 
     this.rules.AddRange(response);
     StateHasChanged();

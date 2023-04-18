@@ -1,12 +1,13 @@
+from typing import List
 from fastapi import Depends, FastAPI, File, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-
 from . import models
+from .schemas import AssociationRuleRow
 from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_files, save_file
-from .crud.apriori_service import get_frequency_table_from_file, get_rules_from_file
+from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 
 from .database import Base, SessionLocal, engine
 
@@ -43,10 +44,6 @@ async def db_session_middleware(request: Request, call_next):
 def get_db(request: Request):
     return request.state.db
 
-
-@app.get("/api")
-def api_hello(db: Session = Depends(get_db)):
-    return {"Hello": "World"}
 
 # Association rules endpoints
 
@@ -88,3 +85,16 @@ async def api_get_rules(
     min_lift: float,
     db: Session = Depends(get_db)):
     return get_rules_from_file(db, file_id, min_support, min_confidence, min_lift)
+
+@app.post("/1/rules/{file_id}")
+async def api_get_rules(
+    file_id: int,
+    rules: list[AssociationRuleRow],
+    db: Session = Depends(get_db)):
+    return save_rule_from_file(db, file_id, rules)
+
+@app.get("/1/rules/{file_id}/all")
+async def api_get_rules_all(
+    file_id: int,
+    db: Session = Depends(get_db)):
+    return get_rule_from_file(db, file_id)

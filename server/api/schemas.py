@@ -1,7 +1,32 @@
+from datetime import datetime
 from pydantic import BaseModel
 
 from .models import FileType
 
+class AssociationRuleExec(BaseModel):
+  id: int
+  file_id: int
+  created_at: datetime
+
+  class Config:
+    orm_mode = True
+
+class AssociationRuleRow(BaseModel):
+  antecedent: str
+  consequent: str
+  confidence: float
+  support: float
+  lift: float
+
+  def __lt__ (self, v):
+    return self.lift - v.lift
+
+class AssociationRule(AssociationRuleRow):
+  id: int
+  exec_id: int
+
+  class Config:
+    orm_mode = True
 
 class FileBase(BaseModel):
   name: str
@@ -10,6 +35,7 @@ class FileBase(BaseModel):
 
 class File(FileBase):
   id: int
+  rules: list[AssociationRule]
 
   class Config:
     orm_mode = True
@@ -23,12 +49,8 @@ class StatisticsRow(BaseModel):
   frequency: int
   relative: float
 
-class AssociationRuleRow(BaseModel):
-  antecedent: str
-  consequent: str
-  confidence: float
-  support: float
-  lift: float
+class AssociationRuleExecResponse(BaseModel):
+  id: int
+  created_at: datetime
 
-  def __lt__ (self, v):
-    return self.lift - v.lift
+  rules: list[AssociationRuleRow]

@@ -50,27 +50,7 @@
   </Row>
   @if (rules.Count > 0)
   {
-    <ListGroup Flush>
-    <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
-      <Text TextWeight="TextWeight.Bold">Found Association Rules</Text>
-      <Div>
-        <Badge Color="Color.Info" Pill>Support</Badge>
-        <Badge Color="Color.Warning" Pill>Confidence</Badge>
-        <Badge Color="Color.Primary" Pill>Lift</Badge>
-      </Div>
-    </ListGroupItem>
-    @foreach (var item in rules)
-      {
-        <ListGroupItem Flex="Flex.JustifyContent.Between.AlignItems.Center">
-          @item.Antecedent -> @item.Consequent
-          <Div>
-            <Badge Color="Color.Info" Pill>@item.Support</Badge>
-            <Badge Color="Color.Warning" Pill>@item.Confidence</Badge>
-            <Badge Color="Color.Primary" Pill>@item.Lift</Badge>
-        </Div>
-      </ListGroupItem>
-      }
-    </ListGroup>
+    <AssociationRulesTable rules="rules"/>
   }
   <Row>
     <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">

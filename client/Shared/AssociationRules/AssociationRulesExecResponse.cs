@@ -7,5 +7,5 @@ public class AssociationRulesExecResponse
   [JsonPropertyName("created_at")]
   public DateTime CreatedAt { get; set; }
   [JsonPropertyName("rules")]
-  public List<AssociationRulesResponse> Rules;
+  public List<AssociationRulesResponse> Rules { get; set; }
 }

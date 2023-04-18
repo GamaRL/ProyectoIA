@@ -21,28 +21,27 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        <Button Clicked="@GetRules" Color="Color.Info" Size="Size.Small">Rules</Button>
+        <Button Clicked="@GetRules" Color="Color.Info" Size="Size.Small">Get Rules</Button>
       </Buttons>
     </Column>
   </Row>
 
   @if (execResults.Count > 0)
   {
-    @* @execResults.Count *@
-    <DataGrid TItem="AssociationRulesExecResponse"
-          Data="@execResults"
-          Responsive
-          Groupable>
+    @foreach (var item in @execResults)
+    {
+    <h3>Exec (@item.Id) at @item.CreatedAt</h3>
+    <DataGrid TItem="AssociationRulesResponse"
+          Data="@item.Rules"
+          Responsive>
       <DataGridCommandColumn />
-      <DataGridColumn Field="@nameof(AssociationRulesExecResponse.Id)" Caption="#" Sortable="false" />
-      <DataGridColumn Field="@nameof(AssociationRulesExecResponse.CreatedAt)" Caption="#" Sortable="false" />
-      @* <DataGridColumn Field="@nameof(Employee.FirstName)" Caption="First Name" Editable /> *@
-      @* <DataGridColumn Field="@nameof(Employee.LastName)" Caption="Last Name" Editable /> *@
-      @* <DataGridColumn Field="@nameof(Employee.Email)" Caption="Email" Editable /> *@
-      @* <DataGridColumn Field="@nameof(Employee.Gender)" Caption="Gender" Editable Groupable Grouping/> *@
-      @* <DataGridColumn Field="@nameof(Employee.Childrens)" Caption="Children" Editable  /> *@
-      @* <DataGridColumn Field="@nameof(Employee.IsActive)" Caption="Active" Editable  /> *@
+      <DataGridColumn Field="@nameof(AssociationRulesResponse.Antecedent)" Caption="Antecedent" Sortable="false" />
+      <DataGridColumn Field="@nameof(AssociationRulesResponse.Consequent)" Caption="Consequent" Sortable="false" />
+      <DataGridColumn Field="@nameof(AssociationRulesResponse.Support)" Caption="Support" Sortable="true" />
+      <DataGridColumn Field="@nameof(AssociationRulesResponse.Confidence)" Caption="Confidence" Sortable="true" />
+      <DataGridColumn Field="@nameof(AssociationRulesResponse.Lift)" Caption="Lift" Sortable="true" />
     </DataGrid>
+    }
   }
 </Container>
 
@@ -63,6 +62,7 @@
   private async void GetRules()
   {
     var response = await this.AssociationRulesServ.GetExecRules(selectedFileId);
+    this.execResults.Clear();
     this.execResults.AddRange(response);
     StateHasChanged();
   }

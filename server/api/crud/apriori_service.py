@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from apyori import apriori
 
 from ..schemas import AssociationRuleExecResponse, AssociationRuleRow, StatisticsRow
@@ -87,10 +87,18 @@ def get_rule_from_file(db: Session, file_id: int):
     response = []
 
     for rule in association_exec:
+        rules = db.query(AssociationRule).filter(AssociationRule.exec_id == rule.id).all()
+        rules = list(map(lambda x: AssociationRuleRow(
+            antecedent=x.antecedent,
+            consequent=x.consequent,
+            support=x.support,
+            confidence=x.confidence,
+            lift=x.lift
+        ), rules))
         register = AssociationRuleExecResponse(
             id = rule.id,
             created_at = rule.created_at,
-            rules = db.query(AssociationRule).filter(AssociationRule.exec_id == rule.file_id).all()
+            rules = rules
         )
         response.append(register)
 

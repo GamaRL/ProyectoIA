@@ -6,7 +6,7 @@
 <Container Fluid>
   <h1>Algorithm usage</h1>
   <Row>
-    <Column ColumnSize="ColumnSize.Is8">
+    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
       <Div>
         <Field>
           <Select TValue="int" @bind-SelectedValue="@selectedFileId">
@@ -18,28 +18,30 @@
         </Field>
       </Div>
     </Column>
-    <Column ColumnSize="ColumnSize.Is2">
-      <Button Clicked="@GetFrequencies" Color="Color.Info">Frequencies</Button>
-    </Column>
-    <Column ColumnSize="ColumnSize.Is2">
-      <Button Clicked="@GetAssociationRules" Color="Color.Primary">Get
-        Rules</Button>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+      <Buttons>
+        <Button Clicked="@GetFrequencies" Color="Color.Info" Size="Size.Small">Frequencies</Button>
+        <Button Clicked="@GetAssociationRules" Color="Color.Primary" Size="Size.Small">Get
+          Rules</Button>
+        <Button Clicked="@SaveAssociationRules" Color="Color.Success" Size="Size.Small">
+          Save Rules</Button>
+      </Buttons>
     </Column>
   </Row>
-  <Row>
-    <Column ColumnSize="ColumnSize.Is4">
+  <Row Margin="Margin.Is4">
+    <Column ColumnSize="ColumnSize.Is4.OnMobile.Is12">
       Support: @minSupport %
       <Field>
         <Slider @bind-Value="@minSupport" Step="0.5f" TValue="float" Min="1" Max="10"/>
       </Field>
     </Column>
-    <Column ColumnSize="ColumnSize.Is4">
+    <Column ColumnSize="ColumnSize.Is4.OnMobile.Is12">
       Confidence: @minConfidence %
       <Field>
         <Slider @bind-Value="@minConfidence" Step="1" TValue="float" Min="1" Max="100" />
       </Field>
     </Column>
-    <Column ColumnSize="ColumnSize.Is4">
+    <Column ColumnSize="ColumnSize.Is4.OnMobile.Is12">
       Lift: @minLift
       <Field>
         <Slider @bind-Value="@minLift" Step="1" TValue="float" Min="1" Max="10" />
@@ -112,5 +114,10 @@
 
     this.rules.AddRange(response);
     StateHasChanged();
+  }
+
+  private void SaveAssociationRules()
+  {
+    this.AssociationRulesServ.SaveRules(selectedFileId, rules);
   }
 }

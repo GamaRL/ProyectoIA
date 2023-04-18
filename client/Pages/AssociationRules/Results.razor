@@ -1,5 +1,69 @@
 @page "/algorithms/association-rules/results"
 
+@inject IAssociationRulesService AssociationRulesServ;
+
+@using Blazorise.DataGrid
+
 <Container>
   <h1>Previous Results</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+      <Div>
+        <Field>
+          <Select TValue="int" @bind-SelectedValue="@selectedFileId">
+            @foreach (var file in uploadedFiles)
+            {
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+            }
+          </Select>
+        </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+      <Buttons>
+        <Button Clicked="@GetRules" Color="Color.Info" Size="Size.Small">Rules</Button>
+      </Buttons>
+    </Column>
+  </Row>
+
+  @if (execResults.Count > 0)
+  {
+    @* @execResults.Count *@
+    <DataGrid TItem="AssociationRulesExecResponse"
+          Data="@execResults"
+          Responsive
+          Groupable>
+      <DataGridCommandColumn />
+      <DataGridColumn Field="@nameof(AssociationRulesExecResponse.Id)" Caption="#" Sortable="false" />
+      <DataGridColumn Field="@nameof(AssociationRulesExecResponse.CreatedAt)" Caption="#" Sortable="false" />
+      @* <DataGridColumn Field="@nameof(Employee.FirstName)" Caption="First Name" Editable /> *@
+      @* <DataGridColumn Field="@nameof(Employee.LastName)" Caption="Last Name" Editable /> *@
+      @* <DataGridColumn Field="@nameof(Employee.Email)" Caption="Email" Editable /> *@
+      @* <DataGridColumn Field="@nameof(Employee.Gender)" Caption="Gender" Editable Groupable Grouping/> *@
+      @* <DataGridColumn Field="@nameof(Employee.Childrens)" Caption="Children" Editable  /> *@
+      @* <DataGridColumn Field="@nameof(Employee.IsActive)" Caption="Active" Editable  /> *@
+    </DataGrid>
+  }
 </Container>
+
+@code{
+  private List<FileModel> uploadedFiles = new();
+  private List<AssociationRulesExecResponse> execResults = new List<AssociationRulesExecResponse>();
+  private int selectedFileId;
+
+  protected override async Task OnInitializedAsync()
+  {
+    this.uploadedFiles.AddRange(await AssociationRulesServ.GetFiles());
+    selectedFileId = this.uploadedFiles.First().Id;
+
+    await base.OnInitializedAsync();
+    StateHasChanged();
+  }
+
+  private async void GetRules()
+  {
+    var response = await this.AssociationRulesServ.GetExecRules(selectedFileId);
+    this.execResults.AddRange(response);
+    StateHasChanged();
+  }
+}

@@ -21,6 +21,9 @@ builder.Services
   .AddSingleton<IAssociationRulesService, AssociationRulesService>();
 
 builder.Services
+  .AddSingleton<IDistancesService, DistancesService>();
+
+builder.Services
   .AddBlazorise(options => {
     options.Immediate = true;
   })

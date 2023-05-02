@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy.orm import Session, load_only
+from sqlalchemy.orm import Session
 from apyori import apriori
 
 from ..schemas import AssociationRuleExecResponse, AssociationRuleRow, StatisticsRow

@@ -15,14 +15,14 @@ def _get_file_path(file: File):
   return os.path.join(base_path, file.file_token) + ".csv"
 
 
-def save_file(db: Session, file: UploadFile):
+def save_file(db: Session, file: UploadFile, type: FileType):
   file_token = "file" + secrets.token_urlsafe(5)
   file_name = file.filename.split(".")[0]
 
   created_file = File(
     name=file_name,
     file_token=file_token,
-    algorithm=FileType.APRIORI
+    algorithm=type
   )
 
   file_path = _get_file_path(created_file)

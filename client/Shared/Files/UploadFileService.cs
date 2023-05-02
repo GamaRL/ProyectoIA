@@ -10,7 +10,7 @@ public class UploadFileService : IUploadFileService
     this._http = http;
   }
 
-  public async Task<FileModel> Upload(Stream file, String fileName)
+  public async Task<FileModel> Upload(Stream file, String fileName, AlgorithmType type)
   {
     MultipartFormDataContent content = new();
     try
@@ -31,7 +31,7 @@ public class UploadFileService : IUploadFileService
       Console.WriteLine(ex.ToString());
     }
 
-    var response = await _http.PostAsync("/1/files/", content);
+    var response = await _http.PostAsync($"/{(int)type}/files/", content);
 
     return await response.Content.ReadFromJsonAsync<FileModel>();
   }
@@ -39,5 +39,30 @@ public class UploadFileService : IUploadFileService
   public long GetMaxFileSize()
   {
     return 20 * 1024L * 1024L;
+  }
+
+  public async Task<FileContentModel> GetFileContent(int fileId, AlgorithmType type)
+  {
+    var response = await this._http.GetAsync($"{(int)type}/files/{fileId}");
+    return  await response.Content.ReadFromJsonAsync<FileContentModel>();
+  }
+
+  public async Task<List<FileModel>> GetFiles(AlgorithmType type)
+  {
+    var response = await this._http.GetAsync($"{(int)type}/files");
+    return await response.Content.ReadFromJsonAsync<List<FileModel>>();
+  }
+
+  public string GetFileUrl(int fileId, AlgorithmType type)
+  {
+    UriBuilder uriBuider = new(new Uri(_http.BaseAddress, $"/{(int)type}/files/{fileId}"));
+    uriBuider.Query = "download=true";
+    return uriBuider.Uri.ToString();
+  }
+
+  public async Task<FileModel> RemoveFile(int id, AlgorithmType type)
+  {
+    var response = await this._http.DeleteAsync($"{(int)type}/files/{id}");
+    return await response.Content.ReadFromJsonAsync<FileModel>();
   }
 }

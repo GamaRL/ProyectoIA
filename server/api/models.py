@@ -8,6 +8,7 @@ from .database import Base
 
 class FileType(enum.Enum):
   APRIORI = 0
+  DISTANCES = 1
 
 
 class File(Base):

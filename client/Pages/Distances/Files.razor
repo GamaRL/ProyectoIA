@@ -1,6 +1,142 @@
 @page "/algorithms/distances/files";
 
+@inject IDistancesService DistancesServ;
+@inject IUploadFileService UploadFileServ;
 
 <Container Fluid>
   <h1>Distances' files</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is10">
+      <Field>
+        <FileEdit Changed="@OnChanged" Filter="text/csv"
+          MaxFileSize="UploadFileServ.GetMaxFileSize()"
+          Placeholder="Choose a file" />
+      </Field>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is2">
+      <Button Color="Color.Primary" Clicked="@SaveFile"
+        Disabled="@(_file == null)">Save it</Button>
+    </Column>
+  </Row>
+
+  <Table Hoverable>
+    <TableHeader>
+      <TableRow>
+        <TableHeaderCell>#</TableHeaderCell>
+        <TableHeaderCell>File Name</TableHeaderCell>
+        <TableHeaderCell>Actions</TableHeaderCell>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      @foreach (var file in uploadedFiles)
+      {
+        <TableRow>
+          <TableRowHeader>@file.Id</TableRowHeader>
+          <TableRowCell>@file.Name</TableRowCell>
+          <TableRowCell>
+            <Button Color="Color.Success" Size="Size.Small"
+            Clicked="async () => await GetFileContent(file.Id)">
+              <Icon Name="IconName.Eye" IconSize="IconSize.Small" />
+            </Button>
+            <Button Type="ButtonType.Link" Color="Color.Secondary"
+            Size="Size.Small" To="@GetFileUrl(file.Id)">
+              <Icon Name="IconName.Download" IconSize="IconSize.Small" />
+            </Button>
+            <Button Color="Color.Danger" Size="Size.Small"
+            Clicked="() => DeleteFile(file.Id)">
+              <Icon Name="IconName.Delete" IconSize="IconSize.Small" />
+            </Button>
+          </TableRowCell>
+        </TableRow>
+      }
+    </TableBody>
+  </Table>
 </Container>
+
+<Modal @ref="modalRef">
+  <ModalContent Size="ModalSize.Large">
+    <ModalHeader>
+      <ModalTitle>File Content</ModalTitle>
+      <CloseButton />
+    </ModalHeader>
+    <ModalBody>
+      @if (_fileContent != null)
+      {
+        <ListGroup Flush>
+        @foreach (var line in _fileContent.Head)
+          {
+            <ListGroupItem>
+              @String.Join(", ", line.ToArray())
+            </ListGroupItem>
+          }
+          <ListGroupItem>...</ListGroupItem>
+          @foreach (var line in _fileContent.Tail)
+          {
+            <ListGroupItem>
+              @String.Join(", ", line.ToArray())
+            </ListGroupItem>
+          }
+        </ListGroup>
+      }
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Secondary">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
+@code {
+  private List<FileModel> uploadedFiles = new();
+  private IFileEntry _file = null;
+  private FileContentModel _fileContent = null;
+
+  public Modal modalRef { get; set; } = new();
+
+  private void OnChanged(FileChangedEventArgs e)
+  {
+    this._file = e.Files.FirstOrDefault();
+    StateHasChanged();
+  }
+
+  private async Task SaveFile()
+  {
+    if (this._file != null && !string.IsNullOrEmpty(this._file.Name))
+    {
+      var newFile = await UploadFileServ
+      .Upload(this._file.OpenReadStream(UploadFileServ.GetMaxFileSize()),
+      this._file.Name, AlgorithmType.DISTANCES);
+
+      this.uploadedFiles.Add(newFile);
+
+      StateHasChanged();
+    }
+  }
+
+  private async Task GetFileContent(int fileId)
+  {
+    var content = await UploadFileServ.GetFileContent(fileId, AlgorithmType.DISTANCES);
+    _fileContent = content;
+    await modalRef.Show();
+    StateHasChanged();
+  }
+
+  private string GetFileUrl(int fileId)
+  {
+    return UploadFileServ.GetFileUrl(fileId, AlgorithmType.DISTANCES);
+  }
+
+  private async Task DeleteFile(int fileId)
+  {
+    var deletedFile = await UploadFileServ.RemoveFile(fileId, AlgorithmType.DISTANCES);
+    this.uploadedFiles.RemoveAll(s => s.Id == deletedFile.Id);
+    StateHasChanged();
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+    this.uploadedFiles.AddRange(await UploadFileServ.GetFiles(AlgorithmType.DISTANCES));
+
+    await base.OnInitializedAsync();
+    StateHasChanged();
+  }
+}

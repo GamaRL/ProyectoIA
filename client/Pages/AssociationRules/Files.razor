@@ -1,7 +1,7 @@
 @page "/algorithms/association-rules/files"
 
 @inject IAssociationRulesService AssociationRulesServ;
-@inject IUploadFileService uploadService;
+@inject IUploadFileService UploadFileServ;
 
 <Container>
   <h1>Association rules' files</h1>
@@ -10,7 +10,7 @@
     <Column ColumnSize="ColumnSize.Is10">
       <Field>
         <FileEdit Changed="@OnChanged" Filter="text/csv"
-          MaxFileSize="uploadService.GetMaxFileSize()"
+          MaxFileSize="UploadFileServ.GetMaxFileSize()"
           Placeholder="Choose a file" />
       </Field>
     </Column>
@@ -105,9 +105,9 @@
   {
     if (this._file != null && !string.IsNullOrEmpty(this._file.Name))
     {
-      var newFile = await uploadService
-      .Upload(this._file.OpenReadStream(uploadService.GetMaxFileSize()),
-      this._file.Name);
+      var newFile = await UploadFileServ
+      .Upload(this._file.OpenReadStream(UploadFileServ.GetMaxFileSize()),
+      this._file.Name, AlgorithmType.APRIORI);
 
       this.uploadedFiles.Add(newFile);
 
@@ -117,7 +117,7 @@
 
   private async Task GetFileContent(int fileId)
   {
-    var content = await AssociationRulesServ.GetFileContent(fileId);
+    var content = await UploadFileServ.GetFileContent(fileId, AlgorithmType.APRIORI);
     _fileContent = content;
     await modalRef.Show();
     StateHasChanged();
@@ -125,19 +125,19 @@
 
   private string GetFileUrl(int fileId)
   {
-    return AssociationRulesServ.GetFileUrl(fileId);
+    return UploadFileServ.GetFileUrl(fileId, AlgorithmType.APRIORI);
   }
 
   private async Task DeleteFile(int fileId)
   {
-    var deletedFile = await AssociationRulesServ.RemoveFile(fileId);
+    var deletedFile = await UploadFileServ.RemoveFile(fileId, AlgorithmType.APRIORI);
     this.uploadedFiles.RemoveAll(s => s.Id == deletedFile.Id);
     StateHasChanged();
   }
 
   protected override async Task OnInitializedAsync()
   {
-    this.uploadedFiles.AddRange(await AssociationRulesServ.GetFiles());
+    this.uploadedFiles.AddRange(await UploadFileServ.GetFiles(AlgorithmType.APRIORI));
 
     await base.OnInitializedAsync();
     StateHasChanged();

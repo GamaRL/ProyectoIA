@@ -1,6 +1,7 @@
 @page "/algorithms/association-rules/results"
 
 @inject IAssociationRulesService AssociationRulesServ;
+@inject IUploadFileService UploadFileServ;
 
 @using Blazorise.DataGrid
 
@@ -52,7 +53,7 @@
 
   protected override async Task OnInitializedAsync()
   {
-    this.uploadedFiles.AddRange(await AssociationRulesServ.GetFiles());
+    this.uploadedFiles.AddRange(await UploadFileServ.GetFiles(AlgorithmType.APRIORI));
     selectedFileId = this.uploadedFiles.First().Id;
 
     await base.OnInitializedAsync();

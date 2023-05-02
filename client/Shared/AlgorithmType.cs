@@ -1,4 +1,5 @@
 public enum AlgorithmType
 {
-  APRIORI = 0
+  APRIORI = 0,
+  DISTANCES = 1,
 }

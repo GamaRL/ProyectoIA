@@ -6,7 +6,8 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from ..schemas import FileContent
-from ..models import File, FileType
+from ..models import File, FileType, StandarizationMethod
+from .helpers import __scale_matrix__, __normalize_matrix__
 
 base_path = "/data/files"
 
@@ -53,13 +54,20 @@ def get_files(db: Session, algorithm: FileType):
 def get_file_by_id(db: Session, file_id: int):
   return db.query(File).filter(File.id == file_id).first()
 
-def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str]):
+def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str], method: StandarizationMethod):
   file: File = get_file_by_id(db, file_id)
   file_path = _get_file_path(file)
 
   content = pd.read_csv(file_path, header=None if not contains_headers else 0)
 
   content = content[columns]
+
+  if method == StandarizationMethod.NORMALIZER:
+    content = __normalize_matrix__(content)
+    content = pd.DataFrame(content).round(2)
+  elif method == StandarizationMethod.SCALER:
+    content = __scale_matrix__(content)
+    content = pd.DataFrame(content).round(4)
 
   headers = content.columns.to_list()
   head = content.head().stack().groupby(level=0).apply(list).tolist()

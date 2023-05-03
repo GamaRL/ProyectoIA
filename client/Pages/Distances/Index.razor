@@ -2,6 +2,7 @@
 @using System.Linq;
 
 @inject IUploadFileService UploadFileServ;
+@inject IDistancesService DistanceServ;
 
 <Container Fluid Margin="Margin.Is5.FromBottom">
   <h1>Algorithm usage</h1>
@@ -20,10 +21,7 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        @* <Button Clicked="@GetFrequencies" Color="Color.Info" Size="Size.Small">Frequencies</Button> *@
         <Button Clicked="@GetDistances" Color="Color.Primary" Size="Size.Small">Get Distances</Button>
-        @* <Button Clicked="@SaveAssociationRules" Color="Color.Success" Size="Size.Small"> *@
-          @* Save Rules</Button> *@
       </Buttons>
     </Column>
   </Row>
@@ -97,6 +95,46 @@
       </Column>
     </Row>
   }
+  @if (response != null)
+  {
+    <Row Margin="Margin.Is4.FromTop">
+      <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
+        <Table Narrow>
+        @* <TableHeader>
+          <TableRow>
+            @foreach (var item in response.Matrix[0])
+              {
+                <TableHeaderCell>@item</TableHeaderCell>
+              }
+            </TableRow>
+          </TableHeader> *@
+          <TableBody>
+            @foreach (var row in response.Matrix)
+            {
+              <TableRow>
+                @foreach (var item in row)
+                {
+                  <TableRowCell>@item</TableRowCell>
+                }
+              </TableRow>
+            }
+          </TableBody>
+        </Table>
+      </Column>
+    </Row>
+    <Divider DividerType="DividerType.Dotted"/>
+    <h2>Additional Options</h2>
+    <Row>
+      <Column>
+        <Label>Select a standarization method</Label>
+        <Select TValue="StandarizationMethod" @bind-SelectedValue="standarizationMethod">
+          <SelectItem Value="@StandarizationMethod.NONE">None</SelectItem>
+          <SelectItem Value="@StandarizationMethod.SCALER">Scaler</SelectItem>
+          <SelectItem Value="@StandarizationMethod.NORMALIZER">Normalizer</SelectItem>
+        </Select>
+      </Column>
+    </Row>
+  }
   </Container>
 
   @code {
@@ -106,6 +144,7 @@
   private bool containsHeaders = true;
   private FileContentModel fileContent = null;
   private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
+  private DistanceMatrixResponse response = null;
 
   protected override async Task OnInitializedAsync()
   {
@@ -120,9 +159,13 @@
     StateHasChanged();
   }
 
-  public void GetDistances()
+  public async Task GetDistances()
   {
-    Console.WriteLine("Trayendo las distancias");
+    var cols = headers
+      .Where<HeaderSelection>(h => h.IsSelected)
+      .Select<HeaderSelection, object>(h => h.Header).ToList();
+    response = await DistanceServ.GetDistanceMatrix(selectedFileId, containsHeaders, cols, standarizationMethod);
+    StateHasChanged();
   }
 
   public async Task GetHeaders()
@@ -153,8 +196,9 @@
 
   public async Task OnUpdateParams()
   {
-    var cols = headers.Where<HeaderSelection>(h =>
-    h.IsSelected).Select<HeaderSelection, object>(h => h.Header).ToList();
+    var cols = headers
+      .Where<HeaderSelection>(h => h.IsSelected)
+      .Select<HeaderSelection, object>(h => h.Header).ToList();
     fileContent = await UploadFileServ.GetFileContentWithHeaders(selectedFileId,
     containsHeaders, cols, AlgorithmType.DISTANCES);
   }

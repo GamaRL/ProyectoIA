@@ -55,3 +55,6 @@ class AssociationRuleExecResponse(BaseModel):
   created_at: datetime
 
   rules: list[AssociationRuleRow]
+
+class DistanceMatrixResponse(BaseModel):
+  matrix: list[list[float]]

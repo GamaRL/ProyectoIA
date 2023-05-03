@@ -6,7 +6,7 @@ from .database import Base
 
 # Files model
 
-class FileType(enum.Enum):
+class FileType(enum.IntEnum):
   APRIORI = 0
   DISTANCES = 1
 
@@ -34,3 +34,8 @@ class AssociationRule(Base):
   support = Column(Float)
   lift = Column(Float)
 
+
+class StandarizationMethod(enum.IntEnum):
+  NONE = 0
+  SCALER = 1
+  NORMALIZER = 2

@@ -6,6 +6,6 @@ public class HeaderSelection
   public HeaderSelection(object Header)
   {
     this.Header = Header;
-    this.IsSelected = false;
+    this.IsSelected = true;
   }
 }

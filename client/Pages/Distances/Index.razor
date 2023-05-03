@@ -1,8 +1,9 @@
 @page "/algorithms/distances"
+@using System.Linq;
 
 @inject IUploadFileService UploadFileServ;
 
-<Container Fluid>
+<Container Fluid Margin="Margin.Is5.FromBottom">
   <h1>Algorithm usage</h1>
   <Row>
     <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
@@ -26,6 +27,8 @@
       </Buttons>
     </Column>
   </Row>
+  <Divider DividerType="DividerType.Dotted"/>
+  <h2>Select columns</h2>
   <Row>
     <Column>
       <Check TValue="bool" Checked="@containsHeaders" CheckedChanged="@OnContainsHeadersChanged">
@@ -37,22 +40,72 @@
     @foreach (var item in headers)
     {
       <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
-        <Check TValue="bool" @bind-Checked="@item.IsSelected">@item.Header</Check>
+        <Check TValue="bool" Checked="@item.IsSelected" CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header</Check>
       </Column>
     }
   </Row>
-  <Row>
-    <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
-      <Div id="chart_div"></Div>
-    </Column>
-  </Row>
-</Container>
+  @if (fileContent != null)
+  {
+    <Row Margin="Margin.Is4.FromTop">
+      <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
+        <Table Narrow>
+        <TableHeader>
+          <TableRow>
+            @foreach (var item in fileContent.Headers)
+              {
+                <TableHeaderCell>@item</TableHeaderCell>
+              }
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            @foreach (var headItem in fileContent.Head)
+            {
+              <TableRow>
+                @foreach (var item in headItem)
+                {
+                  <TableRowCell>@item</TableRowCell>
+                }
+              </TableRow>
+            }
+            <TableRow>
+              <TableRowCell ColumnSpan="@fileContent.Headers.Count">...
+              </TableRowCell>
+            </TableRow>
+            @foreach (var tailItem in fileContent.Tail)
+            {
+              <TableRow>
+                @foreach (var item in tailItem)
+                {
+                  <TableRowCell>@item</TableRowCell>
+                }
+              </TableRow>
+            }
+          </TableBody>
+        </Table>
+      </Column>
+    </Row>
+    <Divider DividerType="DividerType.Dotted"/>
+    <h2>Additional Options</h2>
+    <Row>
+      <Column>
+        <Label>Select a standarization method</Label>
+        <Select TValue="StandarizationMethod" @bind-SelectedValue="standarizationMethod">
+          <SelectItem Value="@StandarizationMethod.NONE">None</SelectItem>
+          <SelectItem Value="@StandarizationMethod.SCALER">Scaler</SelectItem>
+          <SelectItem Value="@StandarizationMethod.NORMALIZER">Normalizer</SelectItem>
+        </Select>
+      </Column>
+    </Row>
+  }
+  </Container>
 
-@code {
+  @code {
   private List<FileModel> uploadedFiles = new();
   private int selectedFileId;
   private List<HeaderSelection> headers = new();
   private bool containsHeaders = true;
+  private FileContentModel fileContent = null;
+  private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
 
   protected override async Task OnInitializedAsync()
   {
@@ -63,6 +116,7 @@
     selectedFileId = this.uploadedFiles.First().Id;
 
     await GetHeaders();
+    await OnUpdateParams();
     StateHasChanged();
   }
 
@@ -85,6 +139,7 @@
   {
     selectedFileId = value;
     await GetHeaders();
+    await OnUpdateParams();
     StateHasChanged();
   }
 
@@ -92,6 +147,22 @@
   {
     containsHeaders = value;
     await GetHeaders();
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task OnUpdateParams()
+  {
+    var cols = headers.Where<HeaderSelection>(h =>
+    h.IsSelected).Select<HeaderSelection, object>(h => h.Header).ToList();
+    fileContent = await UploadFileServ.GetFileContentWithHeaders(selectedFileId,
+    containsHeaders, cols, AlgorithmType.DISTANCES);
+  }
+
+  public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
+  {
+    headerSelection.IsSelected = value;
+    await OnUpdateParams();
     StateHasChanged();
   }
 }

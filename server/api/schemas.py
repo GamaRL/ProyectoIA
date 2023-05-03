@@ -41,6 +41,7 @@ class File(FileBase):
     orm_mode = True
 
 class FileContent(BaseModel):
+  headers: list[str] = None
   head: list[list[str]]
   tail: list[list[str]]
 

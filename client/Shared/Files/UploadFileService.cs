@@ -66,10 +66,18 @@ public class UploadFileService : IUploadFileService
     return await response.Content.ReadFromJsonAsync<FileModel>();
   }
 
-  public async Task<List<object>> GetFileHeaders(int fileId, bool contains_headers, AlgorithmType type)
+  public async Task<List<object>> GetFileHeaders(int fileId, bool containsHeaders, AlgorithmType type)
   {
     UriBuilder uriBuider = new(new Uri(_http.BaseAddress, $"/{(int)type}/files/{fileId}/headers"));
-    uriBuider.Query = $"contains_headers={contains_headers.ToString().ToLower()}";
+    uriBuider.Query = $"contains_headers={containsHeaders.ToString().ToLower()}";
     return await this._http.GetFromJsonAsync<List<object>>(uriBuider.Uri.ToString());
+  }
+  public async Task<FileContentModel> GetFileContentWithHeaders(int fileId, bool containsHeaders, List<object> columns, AlgorithmType type)
+  {
+    UriBuilder uriBuider = new(new Uri(_http.BaseAddress, $"/{(int)type}/files/{fileId}/content"));
+    string columnString = string.Join("&", columns.Select(c => $"columns={c}").ToList());
+    uriBuider.Query = $"contains_headers={containsHeaders.ToString().ToLower()}&{columnString}";
+    
+    return await this._http.GetFromJsonAsync<FileContentModel>(uriBuider.Uri.ToString());
   }
 }

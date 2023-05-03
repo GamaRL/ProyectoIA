@@ -1,12 +1,12 @@
-from typing import List
-from fastapi import Depends, FastAPI, File, Request, Response, UploadFile
+from typing import Annotated, List
+from fastapi import Depends, FastAPI, File, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from . import models
 from .schemas import AssociationRuleRow
-from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_headers, get_files, save_file
+from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 
 from .database import Base, SessionLocal, engine
@@ -123,3 +123,9 @@ async def dist_api_get_file(file_id: int, download: bool = False, db: Session = 
 @app.get("/1/files/{file_id}/headers")
 async def dist_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
     return get_file_headers(db, file_id, contains_headers)
+
+@app.get("/1/files/{file_id}/content")
+async def dist_api_get_file_with_headers(file_id: int, contains_headers: bool = False, columns: Annotated[list[str], Query()] = [], db: Session = Depends(get_db)):
+    if not contains_headers:
+        columns = list(map(lambda p: int(p), columns))
+    return get_file_content_with_headers_by_id(db, file_id, contains_headers, columns)

@@ -53,6 +53,24 @@ def get_files(db: Session, algorithm: FileType):
 def get_file_by_id(db: Session, file_id: int):
   return db.query(File).filter(File.id == file_id).first()
 
+def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str]):
+  file: File = get_file_by_id(db, file_id)
+  file_path = _get_file_path(file)
+
+  content = pd.read_csv(file_path, header=None if not contains_headers else 0)
+
+  content = content[columns]
+
+  headers = content.columns.to_list()
+  head = content.head().stack().groupby(level=0).apply(list).tolist()
+  tail = content.tail().stack().groupby(level=0).apply(list).tolist()
+
+  return FileContent(
+      headers=headers,
+      head=head,
+      tail=tail
+  )
+
 def get_file_content_by_id(db: Session, file_id: int):
   file: File = get_file_by_id(db, file_id)
   file_path = _get_file_path(file)

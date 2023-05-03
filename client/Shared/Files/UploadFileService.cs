@@ -65,4 +65,11 @@ public class UploadFileService : IUploadFileService
     var response = await this._http.DeleteAsync($"{(int)type}/files/{id}");
     return await response.Content.ReadFromJsonAsync<FileModel>();
   }
+
+  public async Task<List<object>> GetFileHeaders(int fileId, bool contains_headers, AlgorithmType type)
+  {
+    UriBuilder uriBuider = new(new Uri(_http.BaseAddress, $"/{(int)type}/files/{fileId}/headers"));
+    uriBuider.Query = $"contains_headers={contains_headers.ToString().ToLower()}";
+    return await this._http.GetFromJsonAsync<List<object>>(uriBuider.Uri.ToString());
+  }
 }

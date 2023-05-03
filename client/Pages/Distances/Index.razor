@@ -1,5 +1,97 @@
 @page "/algorithms/distances"
 
+@inject IUploadFileService UploadFileServ;
+
 <Container Fluid>
   <h1>Algorithm usage</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+      <Div>
+        <Field>
+          <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+            @foreach (var file in uploadedFiles)
+            {
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+            }
+          </Select>
+        </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+      <Buttons>
+        @* <Button Clicked="@GetFrequencies" Color="Color.Info" Size="Size.Small">Frequencies</Button> *@
+        <Button Clicked="@GetDistances" Color="Color.Primary" Size="Size.Small">Get Distances</Button>
+        @* <Button Clicked="@SaveAssociationRules" Color="Color.Success" Size="Size.Small"> *@
+          @* Save Rules</Button> *@
+      </Buttons>
+    </Column>
+  </Row>
+  <Row>
+    <Column>
+      <Check TValue="bool" Checked="@containsHeaders" CheckedChanged="@OnContainsHeadersChanged">
+        Use first row as columns' name?
+      </Check>
+    </Column>
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    @foreach (var item in headers)
+    {
+      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+        <Check TValue="bool" @bind-Checked="@item.IsSelected">@item.Header</Check>
+      </Column>
+    }
+  </Row>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
+      <Div id="chart_div"></Div>
+    </Column>
+  </Row>
 </Container>
+
+@code {
+  private List<FileModel> uploadedFiles = new();
+  private int selectedFileId;
+  private List<HeaderSelection> headers = new();
+  private bool containsHeaders = true;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await base.OnInitializedAsync();
+
+    this.uploadedFiles.AddRange(await
+    UploadFileServ.GetFiles(AlgorithmType.DISTANCES));
+    selectedFileId = this.uploadedFiles.First().Id;
+
+    await GetHeaders();
+    StateHasChanged();
+  }
+
+  public void GetDistances()
+  {
+    Console.WriteLine("Trayendo las distancias");
+  }
+
+  public async Task GetHeaders()
+  {
+    var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
+    AlgorithmType.DISTANCES);
+
+    headers.Clear();
+    @foreach (var header in data)
+      headers.Add(new HeaderSelection(header));
+  }
+
+  public async void OnSelectedFileChanged(int value)
+  {
+    selectedFileId = value;
+    await GetHeaders();
+    StateHasChanged();
+  }
+
+  public async void OnContainsHeadersChanged(bool value)
+  {
+    containsHeaders = value;
+    await GetHeaders();
+    StateHasChanged();
+  }
+}

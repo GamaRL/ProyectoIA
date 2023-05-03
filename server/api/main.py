@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .schemas import AssociationRuleRow
-from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_files, save_file
+from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 
 from .database import Base, SessionLocal, engine
@@ -112,10 +112,14 @@ async def dist_api_delete_file(file_id: int, db: Session = Depends(get_db)):
     return delete_file_by_id(db, file_id)
 
 @app.get("/1/files/{file_id}")
-async def api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+async def dist_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
     if download:
         file: models.File = get_file_by_id(db, file_id)
         path: str = _get_file_path(file)
         return FileResponse(path, filename=file.name, media_type="text/csv")
 
     return get_file_content_by_id(db, file_id)
+
+@app.get("/1/files/{file_id}/headers")
+async def dist_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+    return get_file_headers(db, file_id, contains_headers)

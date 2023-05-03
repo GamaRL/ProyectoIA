@@ -72,3 +72,10 @@ def get_file_path_by_id(db: Session, file_id: int):
   path: str = _get_file_path(file)
 
   return path
+
+def get_file_headers(db: Session, file_id: int, contains_header: bool):
+  file: File = get_file_by_id(db, file_id)
+  file_path = _get_file_path(file)
+  content = pd.read_csv(file_path, header=None if not contains_header else 0)
+
+  return content.columns.to_list()

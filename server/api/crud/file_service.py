@@ -7,13 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..schemas import FileContent
 from ..models import File, FileType, StandarizationMethod
-from .helpers import __scale_matrix__, __normalize_matrix__
-
-base_path = "/data/files"
-
-
-def _get_file_path(file: File):
-  return os.path.join(base_path, file.file_token) + ".csv"
+from .helpers import __get_file_path__ ,__scale_matrix__, __normalize_matrix__
 
 
 def save_file(db: Session, file: UploadFile, type: FileType):
@@ -26,7 +20,7 @@ def save_file(db: Session, file: UploadFile, type: FileType):
     algorithm=type
   )
 
-  file_path = _get_file_path(created_file)
+  file_path = __get_file_path__(created_file)
 
   with open(file_path, "wb") as buffer:
     shutil.copyfileobj(file.file, buffer)
@@ -40,7 +34,7 @@ def save_file(db: Session, file: UploadFile, type: FileType):
 def delete_file_by_id(db: Session, file_id: int):
   file: File = get_file_by_id(db, file_id)
 
-  file_path = _get_file_path(file)
+  file_path = __get_file_path__(file)
 
   db.delete(file)
   os.remove(file_path)
@@ -56,7 +50,7 @@ def get_file_by_id(db: Session, file_id: int):
 
 def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str], method: StandarizationMethod):
   file: File = get_file_by_id(db, file_id)
-  file_path = _get_file_path(file)
+  file_path = __get_file_path__(file)
 
   content = pd.read_csv(file_path, header=None if not contains_headers else 0)
 
@@ -81,7 +75,7 @@ def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_head
 
 def get_file_content_by_id(db: Session, file_id: int):
   file: File = get_file_by_id(db, file_id)
-  file_path = _get_file_path(file)
+  file_path = __get_file_path__(file)
 
   content = pd.read_csv(file_path, header=None)
 
@@ -95,13 +89,13 @@ def get_file_content_by_id(db: Session, file_id: int):
 
 def get_file_path_by_id(db: Session, file_id: int):
   file: File = get_file_by_id(db, file_id)
-  path: str = _get_file_path(file)
+  path: str = __get_file_path__(file)
 
   return path
 
 def get_file_headers(db: Session, file_id: int, contains_header: bool):
   file: File = get_file_by_id(db, file_id)
-  file_path = _get_file_path(file)
+  file_path = __get_file_path__(file)
   content = pd.read_csv(file_path, header=None if not contains_header else 0)
 
   return content.columns.to_list()

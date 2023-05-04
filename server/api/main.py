@@ -1,4 +1,4 @@
-from typing import Annotated, Union
+from typing import Annotated
 from fastapi import Depends, FastAPI, File, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .schemas import AssociationRuleRow
-from .crud.file_service import _get_file_path, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
+from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
 
-from .database import Base, SessionLocal, engine
+from .database import SessionLocal, engine
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -66,7 +67,7 @@ async def api_delete_file(file_id: int, db: Session = Depends(get_db)):
 async def api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
     if download:
         file: models.File = get_file_by_id(db, file_id)
-        path: str = _get_file_path(file)
+        path: str = __get_file_path__(file)
         return FileResponse(path, filename=file.name, media_type="text/csv")
 
     return get_file_content_by_id(db, file_id)
@@ -116,7 +117,7 @@ async def dist_api_delete_file(file_id: int, db: Session = Depends(get_db)):
 async def dist_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
     if download:
         file: models.File = get_file_by_id(db, file_id)
-        path: str = _get_file_path(file)
+        path: str = __get_file_path__(file)
         return FileResponse(path, filename=file.name, media_type="text/csv")
 
     return get_file_content_by_id(db, file_id)

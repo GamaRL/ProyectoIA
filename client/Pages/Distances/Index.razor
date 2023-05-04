@@ -46,7 +46,7 @@
   {
     <Row Margin="Margin.Is4.FromTop">
       <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
-        <Table Narrow>
+        <Table Narrow Striped Responsive>
         <TableHeader>
           <TableRow>
             @foreach (var item in fileContent.Headers)
@@ -87,7 +87,7 @@
     <Row>
       <Column>
         <Label>Select a standarization method</Label>
-        <Select TValue="StandarizationMethod" @bind-SelectedValue="standarizationMethod">
+        <Select TValue="StandarizationMethod" SelectedValue="@standarizationMethod" SelectedValueChanged="@OnUpdateStandarization">
           <SelectItem Value="@StandarizationMethod.NONE">None</SelectItem>
           <SelectItem Value="@StandarizationMethod.SCALER">Scaler</SelectItem>
           <SelectItem Value="@StandarizationMethod.NORMALIZER">Normalizer</SelectItem>
@@ -95,43 +95,22 @@
       </Column>
     </Row>
   }
+  <Divider DividerType="DividerType.Dotted"/>
   @if (response != null)
   {
+    <h2>Distances Matrix</h2>
+
     <Row Margin="Margin.Is4.FromTop">
       <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
-        <Table Narrow>
-        @* <TableHeader>
-          <TableRow>
-            @foreach (var item in response.Matrix[0])
-              {
-                <TableHeaderCell>@item</TableHeaderCell>
-              }
-            </TableRow>
-          </TableHeader> *@
-          <TableBody>
-            @foreach (var row in response.Matrix)
-            {
-              <TableRow>
-                @foreach (var item in row)
-                {
-                  <TableRowCell>@item</TableRowCell>
-                }
-              </TableRow>
-            }
-          </TableBody>
-        </Table>
+        <LargeMatrixVisualization Matrix="response.Matrix"/>
       </Column>
     </Row>
-    <Divider DividerType="DividerType.Dotted"/>
-    <h2>Additional Options</h2>
     <Row>
-      <Column>
-        <Label>Select a standarization method</Label>
-        <Select TValue="StandarizationMethod" @bind-SelectedValue="standarizationMethod">
-          <SelectItem Value="@StandarizationMethod.NONE">None</SelectItem>
-          <SelectItem Value="@StandarizationMethod.SCALER">Scaler</SelectItem>
-          <SelectItem Value="@StandarizationMethod.NORMALIZER">Normalizer</SelectItem>
-        </Select>
+      <Column ColumnSize="ColumnSize.Is12">
+        <Button Color="Color.Success">
+          <BarIcon IconName="IconName.Download" />
+          Export Data
+        </Button>
       </Column>
     </Row>
   }
@@ -200,12 +179,19 @@
       .Where<HeaderSelection>(h => h.IsSelected)
       .Select<HeaderSelection, object>(h => h.Header).ToList();
     fileContent = await UploadFileServ.GetFileContentWithHeaders(selectedFileId,
-    containsHeaders, cols, AlgorithmType.DISTANCES);
+    containsHeaders, cols, standarizationMethod, AlgorithmType.DISTANCES);
   }
 
   public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
   {
     headerSelection.IsSelected = value;
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task OnUpdateStandarization(StandarizationMethod value)
+  {
+    standarizationMethod = value;
     await OnUpdateParams();
     StateHasChanged();
   }

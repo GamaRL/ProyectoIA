@@ -7,5 +7,5 @@ public interface IUploadFileService
   Task<FileContentModel> GetFileContent(int fileId, AlgorithmType type);
   string GetFileUrl(int fileId, AlgorithmType type);
   Task<List<object>> GetFileHeaders(int fileId, bool containsHeaders, AlgorithmType type);
-  Task<FileContentModel> GetFileContentWithHeaders(int fileId, bool containsHeaders, List<object> columns, AlgorithmType type);
+  Task<FileContentModel> GetFileContentWithHeaders(int fileId, bool containsHeaders, List<object> columns, StandarizationMethod method, AlgorithmType type);
 }

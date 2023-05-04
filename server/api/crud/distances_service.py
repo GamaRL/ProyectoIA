@@ -3,14 +3,15 @@ import pandas as pd
 from scipy.spatial import distance
 from sqlalchemy.orm import Session
 
-from ..crud.file_service import _get_file_path, get_file_by_id
+from ..crud.file_service import __get_file_path__, get_file_by_id
 from ..crud.helpers import __normalize_matrix__, __scale_matrix__
 from ..models import StandarizationMethod
 from ..schemas import DistanceMatrixResponse
 
+
 def get_distances_from_file_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str], method: StandarizationMethod = StandarizationMethod.NONE):
   file = get_file_by_id(db, file_id)
-  path = _get_file_path(file)
+  path = __get_file_path__(file)
   content = pd.read_csv(path, header=None if not contains_headers else 0)[columns]
 
   if method == StandarizationMethod.NORMALIZER:

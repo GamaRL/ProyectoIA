@@ -4,11 +4,12 @@ from apyori import apriori
 
 from ..schemas import AssociationRuleExecResponse, AssociationRuleRow, StatisticsRow
 from ..models import AssociationRule, AssociationRuleExec
-from ..crud.file_service import _get_file_path, get_file_by_id
+from ..crud.file_service import __get_file_path__, get_file_by_id
+
 
 def get_frequency_table_from_file(db: Session, file_id: int):
     file = get_file_by_id(db, file_id)
-    path = _get_file_path(file)
+    path = __get_file_path__(file)
     transactions: pd.DataFrame = pd.read_csv(path, header=None)
     data = transactions.values.reshape(-1)
  
@@ -32,7 +33,7 @@ def get_frequency_table_from_file(db: Session, file_id: int):
 
 def get_rules_from_file(db: Session, file_id: int, min_support, min_confidence, min_lift):
     file = get_file_by_id(db, file_id)
-    file_path = _get_file_path(file)
+    file_path = __get_file_path__(file)
 
     content = pd.read_csv(file_path, header=None)
 

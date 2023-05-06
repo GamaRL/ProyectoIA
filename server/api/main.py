@@ -133,5 +133,17 @@ async def dist_api_get_file_with_headers(file_id: int, contains_headers: bool = 
     return get_file_content_with_headers_by_id(db, file_id, contains_headers, columns, method)
 
 @app.get("/1/files/{file_id}/distances")
-async def dist_api_get_file_distances(file_id: int, contains_headers: bool = False, columns: Annotated[list[str], Query()] = [], method: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE, db: Session = Depends(get_db)):
-    return get_distances_from_file_by_id(db, file_id, contains_headers, columns, method)
+async def dist_api_get_file_distances(
+    file_id: int,
+    download: bool = False,
+    contains_headers: bool = False,
+    columns: Annotated[list[str], Query()] = [],
+    metric: Annotated[models.DistanceMetric, Query()] = models.DistanceMetric.EUCLIDEAN,
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    db: Session = Depends(get_db)):
+
+    response = get_distances_from_file_by_id(db, file_id, download, contains_headers, columns, metric, standarization)
+
+    if download:
+        return FileResponse(response, media_type="text/csv")
+    return response

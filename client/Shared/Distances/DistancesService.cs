@@ -9,12 +9,20 @@ public class DistancesService : IDistancesService
     this._http = http;
   }
 
-  public async Task<DistanceMatrixResponse> GetDistanceMatrix(int fileId, bool containsHeaders, List<object> columns, StandarizationMethod method)
+  public async Task<DistanceMatrixResponse> GetDistanceMatrix(int fileId, bool containsHeaders, List<object> columns, DistanceMetric metric, StandarizationMethod standarization)
+  {
+    string path = GetDistancesRequestUrl(fileId, false, containsHeaders, columns, metric, standarization);
+    
+    return await this._http.GetFromJsonAsync<DistanceMatrixResponse>(path);
+  }
+
+  public string GetDistancesRequestUrl(int fileId, bool download, bool containsHeaders, List<object> columns, DistanceMetric metric, StandarizationMethod standarization)
   {
     UriBuilder uriBuider = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.DISTANCES}/files/{fileId}/distances"));
     string columnString = string.Join("&", columns.Select(c => $"columns={c}").ToList());
-    uriBuider.Query = $"contains_headers={containsHeaders.ToString().ToLower()}&{columnString}&method={(int)method}";
-    
-    return await this._http.GetFromJsonAsync<DistanceMatrixResponse>(uriBuider.Uri.ToString());
+
+    uriBuider.Query = $"contains_headers={containsHeaders.ToString().ToLower()}&{columnString}&standarization={(int)standarization}&download={download.ToString().ToLower()}&metric={(int)metric}";
+
+    return uriBuider.Uri.ToString();
   }
 }

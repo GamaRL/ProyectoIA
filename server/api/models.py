@@ -39,3 +39,9 @@ class StandarizationMethod(enum.IntEnum):
   NONE = 0
   SCALER = 1
   NORMALIZER = 2
+
+class DistanceMetric(enum.IntEnum):
+  EUCLIDEAN = 0
+  MANHATTAN = 1
+  CHEVISHEV = 2
+  MINKOWSKI = 3

@@ -15,9 +15,29 @@
         <LayoutContent>
             <Container>
                 <main class="mt-5">
-                    @Body
+                    <ErrorBoundary @ref="errorBoundary">
+                        <ChildContent>
+                            @Body
+                        </ChildContent>
+                        <ErrorContent>
+                            <Alert Color="Color.Danger" Visible>
+                                <AlertMessage>Error</AlertMessage>
+                                <AlertDescription>Something went wrong</AlertDescription>
+                            </Alert>
+                        </ErrorContent>
+                    </ErrorBoundary>
                 </main>
             </Container>
         </LayoutContent>
     </Layout>
 </Layout>
+
+@code {
+    ErrorBoundary errorBoundary;
+
+    protected override void OnParametersSet()
+    {
+        if (errorBoundary != null)
+            errorBoundary.Recover();
+    }
+}

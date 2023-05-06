@@ -2,7 +2,8 @@
 @using System.Linq;
 
 @inject IUploadFileService UploadFileServ;
-@inject IDistancesService DistanceServ;
+@inject IDistancesService DistancesServ;
+@inject NavigationManager NavigationMan;
 
 <Container Fluid Margin="Margin.Is5.FromBottom">
   <h1>Algorithm usage</h1>
@@ -21,7 +22,7 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        <Button Clicked="@GetDistances" Color="Color.Primary" Size="Size.Small">Get Distances</Button>
+        <Button Clicked="@GetDistances" Color="Color.Primary" Size="Size.Small" Disabled="somethingWentWrong">Get Distances</Button>
       </Buttons>
     </Column>
   </Row>
@@ -42,14 +43,42 @@
       </Column>
     }
   </Row>
+  <Divider DividerType="DividerType.Dotted" />
+  <h2>Additional Options</h2>
+  <Row Margin="Margin.Is4.FromTop">
+    <Column>
+      <Label>Select a standarization method</Label>
+      <RadioGroup TValue="StandarizationMethod"
+            Name="standarization"
+            CheckedValue="@standarizationMethod"
+            CheckedValueChanged="@OnUpdateStandarization">
+        <Radio Value="@StandarizationMethod.NONE">None</Radio>
+        <Radio Value="@StandarizationMethod.SCALER">Scaler</Radio>
+        <Radio Value="@StandarizationMethod.NORMALIZER">Normalizer</Radio>
+      </RadioGroup>
+    </Column>
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    <Column>
+      <Label>Select a metric to use</Label>
+      <RadioGroup TValue="DistanceMetric"
+            Name="metric"
+            @bind-CheckedValue="@distanceMetric">
+        <Radio Value="@DistanceMetric.EUCLIDEAN">Euclidean</Radio>
+        <Radio Value="@DistanceMetric.MANHATTAN">Manhattan</Radio>
+        <Radio Value="@DistanceMetric.CHEBYSHEV">Chebyshev</Radio>
+        <Radio Value="@DistanceMetric.MINKOWSKI">Minkowski</Radio>
+      </RadioGroup>
+    </Column>
+  </Row>
   @if (fileContent != null)
   {
     <Row Margin="Margin.Is4.FromTop">
       <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
         <Table Narrow Striped Responsive>
-        <TableHeader>
-          <TableRow>
-            @foreach (var item in fileContent.Headers)
+         <TableHeader>
+           <TableRow>
+             @foreach (var item in fileContent.Headers)
               {
                 <TableHeaderCell>@item</TableHeaderCell>
               }
@@ -82,37 +111,36 @@
         </Table>
       </Column>
     </Row>
-    <Divider DividerType="DividerType.Dotted"/>
-    <h2>Additional Options</h2>
-    <Row>
-      <Column>
-        <Label>Select a standarization method</Label>
-        <Select TValue="StandarizationMethod" SelectedValue="@standarizationMethod" SelectedValueChanged="@OnUpdateStandarization">
-          <SelectItem Value="@StandarizationMethod.NONE">None</SelectItem>
-          <SelectItem Value="@StandarizationMethod.SCALER">Scaler</SelectItem>
-          <SelectItem Value="@StandarizationMethod.NORMALIZER">Normalizer</SelectItem>
-        </Select>
-      </Column>
-    </Row>
   }
-  <Divider DividerType="DividerType.Dotted"/>
+  <Divider DividerType="DividerType.Dotted" />
   @if (response != null)
   {
     <h2>Distances Matrix</h2>
 
     <Row Margin="Margin.Is4.FromTop">
       <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
-        <LargeMatrixVisualization Matrix="response.Matrix"/>
+        <LargeMatrixVisualization Matrix="response.Matrix" />
       </Column>
     </Row>
     <Row>
       <Column ColumnSize="ColumnSize.Is12">
-        <Button Color="Color.Success">
+        <Button Color="Color.Success" Clicked="@ExportData">
           <BarIcon IconName="IconName.Download" />
           Export Data
         </Button>
       </Column>
     </Row>
+  }
+  @if (somethingWentWrong)
+  {
+    <Alert Color="Color.Warning" Visible>
+      <AlertMessage>
+        Warning
+      </AlertMessage>
+      <AlertDescription>
+        Check the selected colums. This module only works with numeric fields.
+      </AlertDescription>
+    </Alert>
   }
   </Container>
 
@@ -123,7 +151,9 @@
   private bool containsHeaders = true;
   private FileContentModel fileContent = null;
   private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
+  private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
   private DistanceMatrixResponse response = null;
+  private bool somethingWentWrong = false;
 
   protected override async Task OnInitializedAsync()
   {
@@ -141,9 +171,9 @@
   public async Task GetDistances()
   {
     var cols = headers
-      .Where<HeaderSelection>(h => h.IsSelected)
-      .Select<HeaderSelection, object>(h => h.Header).ToList();
-    response = await DistanceServ.GetDistanceMatrix(selectedFileId, containsHeaders, cols, standarizationMethod);
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    response = await DistancesServ.GetDistanceMatrix(selectedFileId, containsHeaders, cols, distanceMetric, standarizationMethod);
     StateHasChanged();
   }
 
@@ -168,18 +198,40 @@
   public async void OnContainsHeadersChanged(bool value)
   {
     containsHeaders = value;
+    headers.Clear();
     await GetHeaders();
-    await OnUpdateParams();
+    Console.WriteLine(headers.Count);
+    if (headers.Count > 0)
+    {
+      await OnUpdateParams();
+    }
+    else
+    {
+      fileContent = null;
+      somethingWentWrong = true;
+    }
     StateHasChanged();
   }
 
   public async Task OnUpdateParams()
   {
     var cols = headers
-      .Where<HeaderSelection>(h => h.IsSelected)
-      .Select<HeaderSelection, object>(h => h.Header).ToList();
-    fileContent = await UploadFileServ.GetFileContentWithHeaders(selectedFileId,
-    containsHeaders, cols, standarizationMethod, AlgorithmType.DISTANCES);
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    try
+    {
+      somethingWentWrong = false;
+      fileContent = await UploadFileServ.GetFileContentWithHeaders(selectedFileId,
+      containsHeaders, cols, standarizationMethod, AlgorithmType.DISTANCES);
+    }
+    catch (HttpRequestException ex)
+    {
+      if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+      {
+        fileContent = null;
+        somethingWentWrong = true;
+      }
+    }
   }
 
   public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
@@ -192,7 +244,17 @@
   public async Task OnUpdateStandarization(StandarizationMethod value)
   {
     standarizationMethod = value;
-    await OnUpdateParams();
+    if (headers.Count > 0)
+      await OnUpdateParams();
     StateHasChanged();
+  }
+
+  public void ExportData()
+  {
+    var cols = headers
+      .Where<HeaderSelection>(h => h.IsSelected)
+      .Select<HeaderSelection, object>(h => h.Header).ToList();
+    string path = DistancesServ.GetDistancesRequestUrl(selectedFileId, true, containsHeaders, cols, distanceMetric, standarizationMethod);
+    NavigationMan.NavigateTo(path);
   }
 }

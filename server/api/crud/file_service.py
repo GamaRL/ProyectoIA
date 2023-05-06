@@ -2,12 +2,12 @@ import os
 import secrets
 import shutil
 import pandas as pd
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from ..schemas import FileContent
 from ..models import File, FileType, StandarizationMethod
-from .helpers import __get_file_path__ ,__scale_matrix__, __normalize_matrix__
+from .helpers import __get_file_path__ ,__scale_matrix__, __normalize_matrix__, __validate_numeric_columns__, __validate_numeric_column__
 
 
 def save_file(db: Session, file: UploadFile, type: FileType):
@@ -48,7 +48,7 @@ def get_files(db: Session, algorithm: FileType):
 def get_file_by_id(db: Session, file_id: int):
   return db.query(File).filter(File.id == file_id).first()
 
-def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str], method: StandarizationMethod):
+def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_headers: bool, columns: list[str], standarization: StandarizationMethod):
   file: File = get_file_by_id(db, file_id)
   file_path = __get_file_path__(file)
 
@@ -56,14 +56,18 @@ def get_file_content_with_headers_by_id(db: Session, file_id: int, contains_head
 
   content = content[columns]
 
-  if method == StandarizationMethod.NORMALIZER:
+  headers = content.columns.to_list()
+
+  if not __validate_numeric_columns__(content):
+    raise HTTPException(status_code=400, detail="Unable to process those columns")
+
+  if standarization == StandarizationMethod.NORMALIZER:
     content = __normalize_matrix__(content)
-    content = pd.DataFrame(content).round(2)
-  elif method == StandarizationMethod.SCALER:
+    content = pd.DataFrame(content).round(4)
+  elif standarization == StandarizationMethod.SCALER:
     content = __scale_matrix__(content)
     content = pd.DataFrame(content).round(4)
 
-  headers = content.columns.to_list()
   head = content.head().stack().groupby(level=0).apply(list).tolist()
   tail = content.tail().stack().groupby(level=0).apply(list).tolist()
 
@@ -98,4 +102,9 @@ def get_file_headers(db: Session, file_id: int, contains_header: bool):
   file_path = __get_file_path__(file)
   content = pd.read_csv(file_path, header=None if not contains_header else 0)
 
-  return content.columns.to_list()
+  return list(
+    filter(
+      lambda x: __validate_numeric_column__(content, x),
+      content.columns.to_list()
+    )
+  )

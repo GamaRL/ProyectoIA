@@ -6,10 +6,12 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sqlalchemy.orm import Session
+from sklearn.cluster import AgglomerativeClustering
 
-from ..models import File, StandarizationMethod
-from ..schemas import CorrelationAnalysis
-from .file_service import get_file_by_id, get_file_content_with_headers_by_id, __get_file_path__, get_file_headers
+from ..models import StandarizationMethod
+from ..schemas import AgglomerativeClusterResponse, CorrelationAnalysis
+from .file_service import get_file_by_id, __get_file_path__, get_file_headers
+from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__
 
 def get_correlation_matrix(db: Session, file_id: int, contains_headers: bool, standarization: StandarizationMethod):
   columns: list[str] = get_file_headers(db, file_id, contains_headers)
@@ -41,3 +43,28 @@ def get_correlation_matrix(db: Session, file_id: int, contains_headers: bool, st
   plt.savefig(image_path)
 
   return CorrelationAnalysis(map_filename=filename, strong_corrs=strong_corrs)
+
+def get_agglomerative_clusters(db: Session, file_id: int, contains_headers, columns: list[str], standarization: StandarizationMethod, n_clusters):
+  file = get_file_by_id(db, file_id)
+  path = __get_file_path__(file)
+  data = pd.read_csv(path, header=None if not contains_headers else 0)[columns]
+
+  if standarization == StandarizationMethod.NORMALIZER:
+    content = __normalize_matrix__(data)
+  elif standarization == StandarizationMethod.SCALER:
+    content = __scale_matrix__(data)
+  else:
+    content = data
+
+  clustering = AgglomerativeClustering(n_clusters=n_clusters, linkage='complete', metric='euclidean')
+  clusters = clustering.fit_predict(content).tolist()
+
+  response = []
+  for row in zip(data.to_dict('records'), clusters):
+    response.append(
+        AgglomerativeClusterResponse(
+            id=len(response) + 1,
+            properties=row[0],
+            cluster=row[1]
+        ))
+  return response

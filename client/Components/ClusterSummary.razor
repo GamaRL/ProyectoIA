@@ -1,0 +1,172 @@
+@using System.Linq;
+
+@foreach (var group in GetGroups())
+{
+  <h3>Group @group (@GetClusterSize(group) elements)</h3>
+  <Row Margin="Margin.Is4.FromBottom">
+  <Table Striped Responsive>
+    <TableHeader>
+      <TableRow>
+        <TableHeaderCell>#</TableHeaderCell>
+        @foreach (var item in Response.First().Properties.Keys)
+          {
+            <TableHeaderCell>@item</TableHeaderCell>
+          }
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        @if (GetClusterSize(group) > 6)
+        {
+          @foreach (var item in GetFirstItemsFromGroup(group))
+          {
+            <TableRow>
+              <TableRowHeader>@item.Id</TableRowHeader>
+              @foreach (var key in item.Properties.Keys)
+              {
+                <TableRowCell>@item.Properties[key]</TableRowCell>
+              }
+            </TableRow>
+          }
+          <TableRow>
+            <TableRowCell ColumnSpan="Response.First().Properties.Keys.Count + 1">
+              ...
+            </TableRowCell>
+          </TableRow>
+          @foreach (var item in GetLastItemsFromGroup(group))
+          {
+            <TableRow>
+              <TableRowHeader>@item.Id</TableRowHeader>
+              @foreach (var key in item.Properties.Keys)
+              {
+                <TableRowCell>@item.Properties[key]</TableRowCell>
+              }
+            </TableRow>
+          }
+        }
+        else
+        {
+          @foreach (var item in GetFirstItemsFromGroup(group,
+         GetClusterSize(group)))
+          {
+            <TableRow>
+              <TableRowHeader>@item.Id</TableRowHeader>
+              @foreach (var key in item.Properties.Keys)
+              {
+                <TableRowCell>@item.Properties[key]</TableRowCell>
+              }
+            </TableRow>
+          }
+        }
+        <TableRow Color="Color.Info">
+          <TableRowHeader>Min</TableRowHeader>
+          @foreach (var item in GetMinGroupValue(group))
+          {
+            <TableRowHeader>@item</TableRowHeader>
+          }
+        </TableRow>
+        <TableRow Color="Color.Info">
+          <TableRowHeader>Avg</TableRowHeader>
+          @foreach (var item in GetAvgGroupValue(group))
+          {
+            <TableRowHeader>@item</TableRowHeader>
+          }
+        </TableRow>
+        <TableRow Color="Color.Info">
+          <TableRowHeader>Min</TableRowHeader>
+          @foreach (var item in GetMaxGroupValue(group))
+          {
+            <TableRowHeader>@item</TableRowHeader>
+          }
+        </TableRow>
+      </TableBody>
+    </Table>
+  </Row>
+}
+
+@code {
+  [Parameter]
+  public List<AgglomerativeClusterResponse> Response { get; set; }
+
+  private List<int> GetGroups()
+  {
+    return Response
+    .Select<AgglomerativeClusterResponse, int>(t => t.Cluster)
+    .Distinct()
+    .Order()
+    .ToList();
+  }
+
+  private int GetClusterSize(int cluster)
+  {
+    return Response
+    .Where(r => r.Cluster == cluster)
+    .Count();
+  }
+
+  private List<AgglomerativeClusterResponse> GetFirstItemsFromGroup(int cluster,
+  int n = 3)
+  {
+    return Response
+    .Where(r => r.Cluster == cluster)
+    .Take(n)
+    .ToList();
+  }
+
+  private List<AgglomerativeClusterResponse> GetLastItemsFromGroup(int cluster)
+  {
+    return Response
+    .Where(r => r.Cluster == cluster)
+    .Reverse()
+    .Take(3)
+    .Reverse()
+    .ToList();
+  }
+
+  private List<float> GetMinGroupValue(int cluster)
+  {
+    var response = new List<float>();
+    var cols = Response.First().Properties.Keys.ToList();
+
+    foreach (var key in cols)
+    {
+      response.Add(Response
+      .Where(r => r.Cluster == cluster)
+      .Select<AgglomerativeClusterResponse, float>(r => r.Properties[key])
+      .Min());
+    }
+
+    return response;
+  }
+
+  private List<float> GetMaxGroupValue(int cluster)
+  {
+    var response = new List<float>();
+    var cols = Response.First().Properties.Keys.ToList();
+
+    foreach (var key in cols)
+    {
+      response.Add(Response
+      .Where(r => r.Cluster == cluster)
+      .Select<AgglomerativeClusterResponse, float>(r => r.Properties[key])
+      .Max());
+    }
+
+    return response;
+  }
+
+  private List<float> GetAvgGroupValue(int cluster)
+  {
+    var response = new List<float>();
+    var cols = Response.First().Properties.Keys.ToList();
+
+    foreach (var key in cols)
+    {
+      response.Add(Response
+      .Where(r => r.Cluster == cluster)
+      .Select<AgglomerativeClusterResponse, float>(r => r.Properties[key])
+      .Average());
+    }
+
+    return response;
+  }
+}

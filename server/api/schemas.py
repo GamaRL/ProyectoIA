@@ -62,3 +62,8 @@ class AssociationRuleExecResponse(BaseModel):
 
 class DistanceMatrixResponse(BaseModel):
   matrix: list[list[float]]
+
+class AgglomerativeClusterResponse(BaseModel):
+  id: int
+  properties: dict[str, float]
+  cluster: int

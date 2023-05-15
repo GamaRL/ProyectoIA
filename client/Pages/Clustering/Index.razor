@@ -23,8 +23,8 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        <Button Color="Color.Primary" Size="Size.Small"
-          Disabled="somethingWentWrong">Get Distances</Button>
+        <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary" Size="Size.Small"
+          Disabled="somethingWentWrong">Get Clusters</Button>
         <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
           Disabled="somethingWentWrong">Dimensions</Button>
       </Buttons>
@@ -71,11 +71,15 @@
       @bind-CheckedValue="@distanceMetric">
         <Radio Value="@DistanceMetric.EUCLIDEAN">Euclidean</Radio>
         <Radio Value="@DistanceMetric.MANHATTAN">Manhattan</Radio>
-        <Radio Value="@DistanceMetric.CHEBYSHEV">Chebyshev</Radio>
-        <Radio Value="@DistanceMetric.MINKOWSKI">Minkowski</Radio>
       </RadioGroup>
     </Column>
   </Row>
+  <Divider DividerType="DividerType.Dotted" />
+  @if(clusterResponse != null)
+  {
+    <h2>Found Groups</h2>
+    <ClusterSummary Response="clusterResponse"/>
+  }
   @if (somethingWentWrong)
   {
     <Alert Color="Color.Warning" Visible>
@@ -160,6 +164,7 @@
   private string selectedTab = "corr";
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private string mapUrl = "";
+  private List<AgglomerativeClusterResponse> clusterResponse;
 
   protected override async Task OnInitializedAsync()
   {
@@ -175,6 +180,15 @@
     ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
     this.mapUrl = ClusteringServ.GetCorrelationUrl(this.correlationAnalysis);
 
+    StateHasChanged();
+  }
+
+  public async Task GetAgglomerativeClusters()
+  {
+    var cols = headers
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    this.clusterResponse = await ClusteringServ.GetAgglomerativeClusters(selectedFileId, containsHeaders, cols, standarizationMethod, distanceMetric);
     StateHasChanged();
   }
 

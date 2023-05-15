@@ -1,0 +1,246 @@
+@page "/algorithms/clustering/"
+
+@using System.Linq;
+
+@inject IUploadFileService UploadFileServ;
+@inject IClusteringService ClusteringServ;
+@inject NavigationManager NavigationMan;
+
+<Container Fluid Margin="Margin.Is5.FromBottom">
+   <h1>Algorithm usage</h1>
+   <Row>
+     <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+       <Div>
+         <Field>
+           <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+             @foreach (var file in uploadedFiles)
+            {
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+            }
+          </Select>
+        </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+      <Buttons>
+        <Button Color="Color.Primary" Size="Size.Small"
+          Disabled="somethingWentWrong">Get Distances</Button>
+        <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
+          Disabled="somethingWentWrong">Dimensions</Button>
+      </Buttons>
+    </Column>
+  </Row>
+  <Divider DividerType="DividerType.Dotted" />
+  <h2>Select columns</h2>
+  <Row>
+    <Column>
+      <Check TValue="bool" Checked="@containsHeaders"
+        CheckedChanged="@OnContainsHeadersChanged">
+        Use first row as columns' name?
+      </Check>
+    </Column>
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    @foreach (var item in headers)
+    {
+      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+        <Check TValue="bool" Checked="@item.IsSelected"
+          CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header
+        </Check>
+      </Column>
+    }
+  </Row>
+  <Divider DividerType="DividerType.Dotted" />
+  <h2>Additional Options</h2>
+  <Row Margin="Margin.Is4.FromTop">
+    <Column>
+      <Label>Select a standarization method</Label>
+      <RadioGroup TValue="StandarizationMethod" Name="standarization"
+        CheckedValue="@standarizationMethod"
+        CheckedValueChanged="@OnUpdateStandarization">
+        <Radio Value="@StandarizationMethod.NONE">None</Radio>
+        <Radio Value="@StandarizationMethod.SCALER">Scaler</Radio>
+        <Radio Value="@StandarizationMethod.NORMALIZER">Normalizer</Radio>
+      </RadioGroup>
+    </Column>
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    <Column>
+      <Label>Select a metric to use</Label>
+      <RadioGroup TValue="DistanceMetric" Name="metric"
+      @bind-CheckedValue="@distanceMetric">
+        <Radio Value="@DistanceMetric.EUCLIDEAN">Euclidean</Radio>
+        <Radio Value="@DistanceMetric.MANHATTAN">Manhattan</Radio>
+        <Radio Value="@DistanceMetric.CHEBYSHEV">Chebyshev</Radio>
+        <Radio Value="@DistanceMetric.MINKOWSKI">Minkowski</Radio>
+      </RadioGroup>
+    </Column>
+  </Row>
+  @if (somethingWentWrong)
+  {
+    <Alert Color="Color.Warning" Visible>
+     <AlertMessage>
+       Warning
+     </AlertMessage>
+     <AlertDescription>
+       Check the selected colums. This module only works with numeric fields.
+     </AlertDescription>
+   </Alert>
+  }
+
+  <Modal @ref="modalRef">
+    <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+       <ModalHeader>
+         <ModalTitle>Dimensionality Reduction</ModalTitle>
+         <CloseButton />
+       </ModalHeader>
+       <ModalBody>
+         <Tabs SelectedTab="@selectedTab"
+           SelectedTabChanged="@OnSelectedTabChanged">
+           <Items>
+             <Tab Name="corr">Correlation</Tab>
+             <Tab Name="pca">PCA</Tab>
+           </Items>
+           <Content>
+             <TabPanel Name="corr">
+               <Container Fluid Margin="Margin.Is4.FromTop">
+                 <h3>Correlation Analysis</h3>
+                 @if(correlationAnalysis != null && correlationAnalysis.StrongCorrelations.Count > 0)
+                 {
+                  <Alert Color="Color.Warning" Visible>
+                    <AlertMessage>Strong correlations were found</AlertMessage>
+                    <AlertDescription>
+                    <ul>
+                      @foreach (var item in correlationAnalysis.StrongCorrelations)
+                      {
+                        <li>@item[0] - @item[1]</li>
+                      }
+                    </ul>
+                    </AlertDescription>
+                  </Alert>
+                 }
+                 else
+                 {
+                  <Alert Color="Color.Success" Visible>
+                    <AlertMessage>No strong correlations were found</AlertMessage>
+                    <AlertDescription>
+                      You can continue!
+                    </AlertDescription>
+                  </Alert>
+                 }
+                <Row>
+                  <img src="@mapUrl" alt="Loading..." class="img-fluid">
+                </Row>
+              </Container>
+            </TabPanel>
+            <TabPanel Name="pca">
+              <Container>
+                <h3>Pricipal Component Analysis</h3>
+              </Container>
+            </TabPanel>
+          </Content>
+        </Tabs>
+      </ModalBody>
+      <ModalFooter>
+        <Button Color="Color.Danger" Clicked="@HideModal">Close</Button>
+      </ModalFooter>
+    </ModalContent>
+  </Modal>
+</Container>
+
+@code {
+  private List<FileModel> uploadedFiles = new();
+  private int selectedFileId;
+  private List<HeaderSelection> headers = new();
+  private bool containsHeaders = true;
+  private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
+  private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
+  private bool somethingWentWrong = false;
+  private Modal modalRef = new();
+  private string selectedTab = "corr";
+  private CorrelationAnalysisResponse correlationAnalysis = null;
+  private string mapUrl = "";
+
+  protected override async Task OnInitializedAsync()
+  {
+    await base.OnInitializedAsync();
+
+    this.uploadedFiles.AddRange(await
+    UploadFileServ.GetFiles(AlgorithmType.CLUSTERING));
+    selectedFileId = this.uploadedFiles.First().Id;
+
+    await GetHeaders();
+
+    this.correlationAnalysis = await
+    ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+    this.mapUrl = ClusteringServ.GetCorrelationUrl(this.correlationAnalysis);
+
+    StateHasChanged();
+  }
+
+  public async Task GetHeaders()
+  {
+    var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
+    AlgorithmType.CLUSTERING);
+
+    headers.Clear();
+    foreach (var header in data)
+      headers.Add(new HeaderSelection(header));
+  }
+
+  public async void OnSelectedFileChanged(int value)
+  {
+    selectedFileId = value;
+    await GetHeaders();
+    this.correlationAnalysis = await
+    ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+    this.mapUrl = ClusteringServ.GetCorrelationUrl(this.correlationAnalysis);
+    StateHasChanged();
+  }
+
+  public async void OnContainsHeadersChanged(bool value)
+  {
+    containsHeaders = value;
+    headers.Clear();
+    await GetHeaders();
+    StateHasChanged();
+  }
+
+
+  public void OnCheckedChanged(HeaderSelection headerSelection, bool value)
+  {
+    headerSelection.IsSelected = value;
+    StateHasChanged();
+  }
+
+  public void OnUpdateStandarization(StandarizationMethod value)
+  {
+    standarizationMethod = value;
+    StateHasChanged();
+  }
+
+  public void ExportData()
+  {
+    var cols = headers
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    @* string path = DistancesServ.GetDistancesRequestUrl(selectedFileId, true,
+containsHeaders, cols, distanceMetric, standarizationMethod); *@
+    @* NavigationMan.NavigateTo(path); *@
+  }
+
+  private void ShowModal()
+  {
+    modalRef.Show();
+  }
+
+  private void HideModal()
+  {
+    modalRef.Hide();
+  }
+
+  private void OnSelectedTabChanged(string name)
+  {
+    selectedTab = name;
+  }
+}

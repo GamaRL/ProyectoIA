@@ -1,3 +1,4 @@
+import os
 from typing import Annotated
 from fastapi import Depends, FastAPI, File, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from .schemas import AssociationRuleRow
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
+from .crud.clustering_service import get_correlation_matrix
 
 from .database import SessionLocal, engine
 
@@ -147,3 +149,46 @@ async def dist_api_get_file_distances(
     if download:
         return FileResponse(response, media_type="text/csv")
     return response
+
+# Clustering endpoints
+
+@app.post("/2/files/")
+async def clust_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+    return save_file(db, file, models.FileType.CLUSTERING)
+
+@app.get("/2/files/")
+async def clust_api_get_files(db: Session = Depends(get_db)):
+    return get_files(db, models.FileType.CLUSTERING)
+
+@app.delete("/2/files/{file_id}")
+async def clust_api_delete_file(file_id: int, db: Session = Depends(get_db)):
+    return delete_file_by_id(db, file_id)
+
+@app.get("/2/files/{file_id}")
+async def clust_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+    if download:
+        file: models.File = get_file_by_id(db, file_id)
+        path: str = __get_file_path__(file)
+        return FileResponse(path, filename=file.name, media_type="text/csv")
+
+    return get_file_content_by_id(db, file_id)
+
+@app.get("/2/files/{file_id}/headers")
+async def clust_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+    return get_file_headers(db, file_id, contains_headers)
+
+@app.get("/2/files/{file_id}/dimensionality")
+async def clust_api_get_dimensionality(
+    file_id: int,
+    contains_headers: bool = False,
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    db: Session = Depends(get_db)):
+
+    return get_correlation_matrix(db, file_id, contains_headers, standarization)
+
+@app.get("/2/images/{filename}")
+async def clust_api_get_map(
+    filename: str,
+    db: Session = Depends(get_db)):
+        path = os.path.join("/tmp", filename)
+        return FileResponse(path, filename=filename, media_type="img/png")

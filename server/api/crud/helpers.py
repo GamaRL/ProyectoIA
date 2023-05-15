@@ -13,11 +13,11 @@ def __get_file_path__(file: File):
 
 def __scale_matrix__(distances: pd.DataFrame):
   scaler = StandardScaler()
-  return scaler.fit_transform(distances)
+  return pd.DataFrame(scaler.fit_transform(distances))
 
 def __normalize_matrix__(distances: pd.DataFrame):
   scaler = MinMaxScaler()
-  return scaler.fit_transform(distances)
+  return pd.DataFrame(scaler.fit_transform(distances))
 
 def __validate_numeric_column__(data: pd.DataFrame, col: str):
   return data[col].dtype.kind in 'iufc'

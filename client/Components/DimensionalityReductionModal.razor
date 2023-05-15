@@ -1,0 +1,50 @@
+<Modal @ref="ModalRef">
+  <ModalContent Centered Size="ModalSize.Large">
+     <ModalHeader>
+       <ModalTitle>Dimensionality Reduction</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+       <Tabs SelectedTab="@selectedTab"
+         SelectedTabChanged="@OnSelectedTabChanged">
+         <Items>
+           <Tab Name="corr">Correlation</Tab>
+           <Tab Name="pca">PCA</Tab>
+         </Items>
+         <Content>
+           <TabPanel Name="corr">
+             <Container>
+              <h2>Content for home.</h2>
+             </Container>
+           </TabPanel>
+           <TabPanel Name="pca">
+             <Container>
+              <h2>Content for profile.</h2>
+             </Container>
+           </TabPanel>
+         </Content>
+       </Tabs>
+     </ModalBody>
+     <ModalFooter>
+       <Button Color="Color.Danger" Clicked="@HideModal">Close</Button>
+     </ModalFooter>
+   </ModalContent>
+ </Modal>
+
+ @code {
+  [Parameter]
+  public Modal ModalRef { get; set; }
+  string selectedTab = "corr";
+
+  private Task OnSelectedTabChanged( string name )
+  {
+    selectedTab = name;
+
+    return Task.CompletedTask;
+  }
+
+  private void HideModal()
+  {
+    ModalRef.Hide();
+  }
+}

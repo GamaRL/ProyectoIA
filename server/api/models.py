@@ -1,6 +1,5 @@
 import enum
 from sqlalchemy import TIMESTAMP, Column, Enum, Float, ForeignKey, Integer, String, func
-from sqlalchemy.orm import relationship
 
 from .database import Base
 
@@ -9,6 +8,7 @@ from .database import Base
 class FileType(enum.IntEnum):
   APRIORI = 0
   DISTANCES = 1
+  CLUSTERING = 2
 
 
 class File(Base):
@@ -45,3 +45,8 @@ class DistanceMetric(enum.IntEnum):
   MANHATTAN = 1
   CHEVISHEV = 2
   MINKOWSKI = 3
+
+
+class DimensionalityReductionType(enum.IntEnum):
+  CORRELATION = 0
+  PCA = 1

@@ -45,6 +45,10 @@ class FileContent(BaseModel):
   head: list[list[str]]
   tail: list[list[str]]
 
+class CorrelationAnalysis(BaseModel):
+  map_filename: str
+  strong_corrs: list[list[str, str]]
+
 class StatisticsRow(BaseModel):
   item: str
   frequency: int

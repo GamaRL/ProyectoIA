@@ -24,6 +24,9 @@ builder.Services
   .AddSingleton<IDistancesService, DistancesService>();
 
 builder.Services
+  .AddSingleton<IClusteringService, ClusteringService>();
+
+builder.Services
   .AddBlazorise(options => {
     options.Immediate = true;
   })

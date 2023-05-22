@@ -1,4 +1,4 @@
-@page "/algorithms/clustering/"
+@page "/algorithms/clustering/agglomerative"
 
 @using System.Linq;
 
@@ -7,16 +7,16 @@
 @inject NavigationManager NavigationMan;
 
 <Container Fluid Margin="Margin.Is5.FromBottom">
-   <h1>Algorithm usage</h1>
-   <Row>
-     <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
-       <Div>
-         <Field>
-           <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
-             @foreach (var file in uploadedFiles)
-            {
-              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
-            }
+  <h1>Algorithm usage (Agglomerative)</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+      <Div>
+        <Field>
+          <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+          @foreach (var file in uploadedFiles)
+          {
+            <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+          }
           </Select>
         </Field>
       </Div>
@@ -58,9 +58,9 @@
       <RadioGroup TValue="StandarizationMethod" Name="standarization"
         CheckedValue="@standarizationMethod"
         CheckedValueChanged="@OnUpdateStandarization">
-        <Radio Value="@StandarizationMethod.NONE">None</Radio>
         <Radio Value="@StandarizationMethod.SCALER">Scaler</Radio>
         <Radio Value="@StandarizationMethod.NORMALIZER">Normalizer</Radio>
+        <Radio Value="@StandarizationMethod.NONE">None</Radio>
       </RadioGroup>
     </Column>
   </Row>
@@ -68,16 +68,28 @@
     <Column>
       <Label>Select a metric to use</Label>
       <RadioGroup TValue="DistanceMetric" Name="metric"
-      @bind-CheckedValue="@distanceMetric">
+      CheckedValue="@distanceMetric"
+      CheckedValueChanged="@OnUpdateMetric">
         <Radio Value="@DistanceMetric.EUCLIDEAN">Euclidean</Radio>
         <Radio Value="@DistanceMetric.MANHATTAN">Manhattan</Radio>
       </RadioGroup>
     </Column>
   </Row>
+  <Row>
+    <img src="@agglomerativeClusterUrl" alt="Loading..." class="img-fluid">
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    <Column>
+      <Label>No. Clusters: @noClusters</Label>
+      <Field>
+        <Slider @bind-Value="@noClusters" Step="1" TValue="int" Min="2" Max="10"/>
+      </Field>
+    </Column>
+  </Row>
   <Divider DividerType="DividerType.Dotted" />
   @if(clusterResponse != null)
   {
-    <h2>Found Groups</h2>
+    <h2>Found Clusters</h2>
     <ClusterSummary Response="clusterResponse"/>
   }
   @if (somethingWentWrong)
@@ -157,14 +169,16 @@
   private int selectedFileId;
   private List<HeaderSelection> headers = new();
   private bool containsHeaders = true;
-  private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
+  private StandarizationMethod standarizationMethod = StandarizationMethod.SCALER;
   private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
   private bool somethingWentWrong = false;
   private Modal modalRef = new();
   private string selectedTab = "corr";
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private string mapUrl = "";
-  private List<AgglomerativeClusterResponse> clusterResponse;
+  private List<ClusterResponse> clusterResponse;
+  private string agglomerativeClusterUrl = "";
+  private int noClusters = 2;
 
   protected override async Task OnInitializedAsync()
   {
@@ -175,10 +189,7 @@
     selectedFileId = this.uploadedFiles.First().Id;
 
     await GetHeaders();
-
-    this.correlationAnalysis = await
-    ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
-    this.mapUrl = ClusteringServ.GetCorrelationUrl(this.correlationAnalysis);
+    await OnUpdateParams();
 
     StateHasChanged();
   }
@@ -188,7 +199,7 @@
     var cols = headers
     .Where<HeaderSelection>(h => h.IsSelected)
     .Select<HeaderSelection, object>(h => h.Header).ToList();
-    this.clusterResponse = await ClusteringServ.GetAgglomerativeClusters(selectedFileId, containsHeaders, cols, standarizationMethod, distanceMetric);
+    this.clusterResponse = await ClusteringServ.GetPartitionalClusters(selectedFileId, containsHeaders, cols, standarizationMethod, distanceMetric, noClusters);
     StateHasChanged();
   }
 
@@ -206,9 +217,8 @@
   {
     selectedFileId = value;
     await GetHeaders();
-    this.correlationAnalysis = await
-    ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
-    this.mapUrl = ClusteringServ.GetCorrelationUrl(this.correlationAnalysis);
+    await OnUpdateParams();
+
     StateHasChanged();
   }
 
@@ -217,19 +227,28 @@
     containsHeaders = value;
     headers.Clear();
     await GetHeaders();
+    await OnUpdateParams();
     StateHasChanged();
   }
 
-
-  public void OnCheckedChanged(HeaderSelection headerSelection, bool value)
+  public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
   {
     headerSelection.IsSelected = value;
+    await OnUpdateParams();
     StateHasChanged();
   }
 
-  public void OnUpdateStandarization(StandarizationMethod value)
+  public async Task OnUpdateStandarization(StandarizationMethod value)
   {
     standarizationMethod = value;
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task OnUpdateMetric(DistanceMetric value)
+  {
+    distanceMetric = value;
+    await OnUpdateParams();
     StateHasChanged();
   }
 
@@ -241,6 +260,31 @@
     @* string path = DistancesServ.GetDistancesRequestUrl(selectedFileId, true,
 containsHeaders, cols, distanceMetric, standarizationMethod); *@
     @* NavigationMan.NavigateTo(path); *@
+  }
+
+  public async Task OnUpdateParams()
+  {
+    var cols = headers
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    try
+    {
+      somethingWentWrong = false;
+      this.agglomerativeClusterUrl = "";
+      this.correlationAnalysis = await ClusteringServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+      this.mapUrl = ClusteringServ.GetImageUrl(this.correlationAnalysis.MapFileName);
+      this.agglomerativeClusterUrl = ClusteringServ.GetImageUrl(await ClusteringServ.GetAgglomarativeClustersImg(selectedFileId, containsHeaders, cols, standarizationMethod, distanceMetric));
+    }
+    catch (HttpRequestException ex)
+    {
+      if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+      {
+        this.correlationAnalysis = null;
+        this.mapUrl = "";
+        this.agglomerativeClusterUrl = "";
+        somethingWentWrong = true;
+      }
+    }
   }
 
   private void ShowModal()

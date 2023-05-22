@@ -10,7 +10,7 @@ from .schemas import AssociationRuleRow
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
-from .crud.clustering_service import get_agglomerative_clusters, get_correlation_matrix
+from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_correlation_matrix, get_partitional_cluster_img, get_partitional_clusters
 
 from .database import SessionLocal, engine
 
@@ -199,6 +199,38 @@ async def clust_api_get_agglomerative(
     contains_headers: bool = False,
     columns: Annotated[list[str], Query()] = [],
     standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
-    n_clusters: int = 7,
+    metric: Annotated[models.DistanceMetric, Query()] = models.DistanceMetric.EUCLIDEAN,
+    no_clusters: int = 7,
     db: Session = Depends(get_db)):
-    return get_agglomerative_clusters(db, file_id, contains_headers, columns, standarization, n_clusters)
+    return get_agglomerative_clusters(db, file_id, contains_headers, columns, standarization, metric, no_clusters)
+
+@app.get("/2/files/{file_id}/agglomerative/img")
+async def clust_api_get_agglomerative_img(
+    file_id: int,
+    contains_headers: bool = False,
+    columns: Annotated[list[str], Query()] = [],
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    metric: Annotated[models.DistanceMetric, Query()] = models.DistanceMetric.EUCLIDEAN,
+    db: Session = Depends(get_db)):
+    return get_agglomerative_cluster_img(db, file_id, contains_headers, columns, standarization, metric)
+
+@app.get("/2/files/{file_id}/partitional/img")
+async def clust_api_get_agglomerative_img(
+    file_id: int,
+    contains_headers: bool = False,
+    columns: Annotated[list[str], Query()] = [],
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    metric: Annotated[models.DistanceMetric, Query()] = models.DistanceMetric.EUCLIDEAN,
+    db: Session = Depends(get_db)):
+    return get_partitional_cluster_img(db, file_id, contains_headers, columns, standarization, metric)
+
+@app.get("/2/files/{file_id}/partitional")
+async def clust_api_get_agglomerative(
+    file_id: int,
+    contains_headers: bool = False,
+    columns: Annotated[list[str], Query()] = [],
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    metric: Annotated[models.DistanceMetric, Query()] = models.DistanceMetric.EUCLIDEAN,
+    no_clusters: int = 7,
+    db: Session = Depends(get_db)):
+    return get_partitional_clusters(db, file_id, contains_headers, columns, standarization, metric, no_clusters)

@@ -52,9 +52,9 @@
             Name="standarization"
             CheckedValue="@standarizationMethod"
             CheckedValueChanged="@OnUpdateStandarization">
-        <Radio Value="@StandarizationMethod.NONE">None</Radio>
         <Radio Value="@StandarizationMethod.SCALER">Scaler</Radio>
         <Radio Value="@StandarizationMethod.NORMALIZER">Normalizer</Radio>
+        <Radio Value="@StandarizationMethod.NONE">None</Radio>
       </RadioGroup>
     </Column>
   </Row>
@@ -150,7 +150,7 @@
   private List<HeaderSelection> headers = new();
   private bool containsHeaders = true;
   private FileContentModel fileContent = null;
-  private StandarizationMethod standarizationMethod = StandarizationMethod.NONE;
+  private StandarizationMethod standarizationMethod = StandarizationMethod.SCALER;
   private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
   private DistanceMatrixResponse response = null;
   private bool somethingWentWrong = false;

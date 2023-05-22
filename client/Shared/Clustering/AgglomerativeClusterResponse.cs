@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-public class AgglomerativeClusterResponse
+public class ClusterResponse
 {
   [JsonPropertyName("id")]
   public int Id { get; set; }

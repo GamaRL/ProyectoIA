@@ -1,5 +1,34 @@
 @using System.Linq;
 
+
+<Divider DividerType="DividerType.Dotted" />
+<Heading Size="HeadingSize.Is3">Centroids</Heading>
+<Table Striped Responsive Narrow>
+  <TableHeader ThemeContrast="ThemeContrast.Dark">
+    <TableRow>
+      <TableHeaderCell>#</TableHeaderCell>
+      @foreach (var item in Response.First().Properties.Keys)
+      {
+        <TableHeaderCell>@item</TableHeaderCell>
+      }
+    </TableRow>
+  </TableHeader>
+  <TableBody>
+    @foreach (var group in GetGroups())
+    {
+        <TableRow>
+          <TableRowHeader>@group</TableRowHeader>
+          @foreach (var key in GetAvgGroupValue(group))
+          {
+            <TableRowCell>@key</TableRowCell>
+          }
+        </TableRow>
+      }
+  </TableBody>
+</Table>
+
+<Divider DividerType="DividerType.Dotted" />
+<Heading Size="HeadingSize.Is3">Details</Heading>
 <Accordion>
   @foreach (var group in GetGroups())
   {

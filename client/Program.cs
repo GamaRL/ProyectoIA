@@ -27,6 +27,9 @@ builder.Services
   .AddSingleton<IClusteringService, ClusteringService>();
 
 builder.Services
+  .AddSingleton<ILogisticRegressionService, LogisticRegressionService>();
+
+builder.Services
   .AddBlazorise(options => {
     options.Immediate = true;
   })

@@ -10,10 +10,10 @@ from .schemas import AssociationRuleRow
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
-from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_correlation_matrix, get_partitional_cluster_img, get_partitional_clusters
+from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
+from .crud.feature_selection_service import get_correlation_matrix
 
 from .database import SessionLocal, engine
-
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -234,3 +234,45 @@ async def clust_api_get_agglomerative(
     no_clusters: int = 7,
     db: Session = Depends(get_db)):
     return get_partitional_clusters(db, file_id, contains_headers, columns, standarization, metric, no_clusters)
+
+# Logistic regression endpoints
+@app.post("/3/files/")
+async def regr_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+    return save_file(db, file, models.FileType.LOGISTIC_REGRESSION)
+
+@app.get("/3/files/")
+async def regr_api_get_files(db: Session = Depends(get_db)):
+    return get_files(db, models.FileType.LOGISTIC_REGRESSION)
+
+@app.delete("/3/files/{file_id}")
+async def regr_api_delete_file(file_id: int, db: Session = Depends(get_db)):
+    return delete_file_by_id(db, file_id)
+
+@app.get("/3/files/{file_id}")
+async def regr_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+    if download:
+        file: models.File = get_file_by_id(db, file_id)
+        path: str = __get_file_path__(file)
+        return FileResponse(path, filename=file.name, media_type="text/csv")
+
+    return get_file_content_by_id(db, file_id)
+
+@app.get("/3/files/{file_id}/headers")
+async def regr_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+    return get_file_headers(db, file_id, contains_headers)
+
+@app.get("/3/files/{file_id}/dimensionality")
+async def regr_api_get_dimensionality(
+    file_id: int,
+    contains_headers: bool = False,
+    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
+    db: Session = Depends(get_db)):
+
+    return get_correlation_matrix(db, file_id, contains_headers, standarization)
+
+@app.get("/3/images/{filename}")
+async def clust_api_get_map(
+    filename: str,
+    db: Session = Depends(get_db)):
+        path = os.path.join("/tmp", filename)
+        return FileResponse(path, filename=filename, media_type="img/png")

@@ -1,0 +1,242 @@
+
+@page "/algorithms/regression"
+
+@inject IUploadFileService UploadFileServ;
+@inject ILogisticRegressionService RegressionServ;
+
+<Container Fluid Margin="Margin.Is5.FromBottom">
+  <h1>Algorithm usage</h1>
+  <Row>
+    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+      <Div>
+        <Field>
+          <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+            @foreach (var file in uploadedFiles)
+            {
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+            }
+          </Select>
+        </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+      <Buttons>
+        @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary" Size="Size.Small" *@
+          @* Disabled="somethingWentWrong">Get Clusters</Button> *@
+        <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
+          Disabled="somethingWentWrong">Dimensions</Button>
+      </Buttons>
+    </Column>
+  </Row>
+
+  <Divider DividerType="DividerType.Dotted"/>
+  <h2>Predictor variables</h2>
+  <Row>
+    <Column>
+      <Check TValue="bool" Checked="@containsHeaders" CheckedChanged="@OnContainsHeadersChanged">
+        Use first row as columns' name?
+      </Check>
+    </Column>
+  </Row>
+  <Row Margin="Margin.Is4.FromTop">
+    @foreach (var item in predictorHeaders)
+    {
+      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+        <Check TValue="bool" Checked="@item.IsSelected" CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header</Check>
+      </Column>
+    }
+  </Row>
+  <h2>Class variable</h2>
+    <RadioGroup
+      TValue="HeaderSelection"
+      Name="classHeaders"
+      CheckedValue="classVariable"
+      CheckedValueChanged="OnRadioChanged">
+  <Row Margin="Margin.Is4.FromTop">
+    @foreach (var item in classHeaders)
+    {
+      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+          <Radio Value="@item">@item.Header</Radio>
+      </Column>
+    }
+  </Row>
+    </RadioGroup>
+</Container>
+
+<Modal @ref="modalRef">
+  <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+     <ModalHeader>
+       <ModalTitle>Dimensionality Reduction</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+       <Tabs SelectedTab="@selectedTab"
+         SelectedTabChanged="@OnSelectedTabChanged">
+         <Items>
+           <Tab Name="corr">Correlation</Tab>
+           <Tab Name="pca">PCA</Tab>
+         </Items>
+         <Content>
+           <TabPanel Name="corr">
+             <Container Fluid Margin="Margin.Is4.FromTop">
+               <h3>Correlation Analysis</h3>
+               @if (correlationAnalysis != null &&
+              correlationAnalysis.StrongCorrelations.Count > 0)
+              {
+                <Alert Color="Color.Warning" Visible>
+                 <AlertMessage>Strong correlations were found</AlertMessage>
+                 <AlertDescription>
+                   <ul>
+                     @foreach (var item in
+                     correlationAnalysis.StrongCorrelations)
+                      {
+                        <li>@item[0] - @item[1]</li>
+                      }
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              }
+              else
+              {
+                <Alert Color="Color.Success" Visible>
+                 <AlertMessage>No strong correlations were found</AlertMessage>
+                 <AlertDescription>
+                   You can continue!
+                 </AlertDescription>
+               </Alert>
+              }
+              <Row>
+                <img src="@mapUrl" alt="Loading..." class="img-fluid">
+              </Row>
+            </Container>
+          </TabPanel>
+          <TabPanel Name="pca">
+            <Container>
+              <h3>Pricipal Component Analysis</h3>
+            </Container>
+          </TabPanel>
+        </Content>
+      </Tabs>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Danger" Clicked="@HideModal">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
+@code {
+
+  private Modal modalRef = new();
+  private string selectedTab = "corr";
+  private string mapUrl = "";
+  private CorrelationAnalysisResponse correlationAnalysis = null;
+  private List<FileModel> uploadedFiles = new();
+  private HeaderSelection classVariable;
+  private int selectedFileId;
+  private List<HeaderSelection> predictorHeaders = new();
+  private List<HeaderSelection> classHeaders = new();
+  private bool containsHeaders = true;
+  private bool somethingWentWrong;
+
+  protected override async Task OnInitializedAsync()
+  {
+    await base.OnInitializedAsync();
+
+    this.uploadedFiles.AddRange(await
+    UploadFileServ.GetFiles(AlgorithmType.LOGISTIC_REGRESSION));
+    selectedFileId = this.uploadedFiles.First().Id;
+
+    await GetHeaders();
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task GetHeaders()
+  {
+    var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
+    AlgorithmType.LOGISTIC_REGRESSION);
+
+    predictorHeaders.Clear();
+    foreach (var header in data)
+      predictorHeaders.Add(new HeaderSelection(header));
+  }
+
+  public async void OnSelectedFileChanged(int value)
+  {
+    selectedFileId = value;
+    await GetHeaders();
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task OnUpdateParams()
+  {
+    var cols = predictorHeaders
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    try
+    {
+      somethingWentWrong = false;
+      this.correlationAnalysis = await RegressionServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+      this.mapUrl = RegressionServ.GetImageUrl(this.correlationAnalysis.MapFileName);
+    }
+    catch (HttpRequestException ex)
+    {
+      if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+      {
+        this.correlationAnalysis = null;
+        this.mapUrl = "";
+        somethingWentWrong = true;
+      }
+    }
+  }
+
+  public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
+  {
+    headerSelection.IsSelected = value;
+
+    classHeaders = predictorHeaders
+    .Where<HeaderSelection>(h => !h.IsSelected)
+    .ToList();
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async Task OnRadioChanged(HeaderSelection value)
+  {
+    classVariable = value;
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public async void OnContainsHeadersChanged(bool value)
+  {
+    containsHeaders = value;
+    predictorHeaders.Clear();
+    await GetHeaders();
+    Console.WriteLine(predictorHeaders.Count);
+    if (predictorHeaders.Count > 0)
+    {
+      await OnUpdateParams();
+    }
+    else
+    {
+      somethingWentWrong = true;
+    }
+    StateHasChanged();
+  }
+  private void ShowModal()
+  {
+    modalRef.Show();
+  }
+
+  private void HideModal()
+  {
+    modalRef.Hide();
+  }
+
+  private void OnSelectedTabChanged(string name)
+  {
+    selectedTab = name;
+  }
+}

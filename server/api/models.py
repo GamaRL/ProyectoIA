@@ -9,6 +9,7 @@ class FileType(enum.IntEnum):
   APRIORI = 0
   DISTANCES = 1
   CLUSTERING = 2
+  LOGISTIC_REGRESSION = 3
 
 
 class File(Base):

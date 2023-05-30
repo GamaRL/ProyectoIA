@@ -5,7 +5,6 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 from ..models import File
 
-
 base_path = "/data/files"
 
 def __get_file_path__(file: File):

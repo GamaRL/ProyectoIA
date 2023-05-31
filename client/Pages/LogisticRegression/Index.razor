@@ -1,17 +1,16 @@
-
 @page "/algorithms/regression"
 
 @inject IUploadFileService UploadFileServ;
 @inject ILogisticRegressionService RegressionServ;
 
 <Container Fluid Margin="Margin.Is5.FromBottom">
-  <h1>Algorithm usage</h1>
-  <Row>
-    <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
-      <Div>
-        <Field>
-          <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
-            @foreach (var file in uploadedFiles)
+   <h1>Algorithm usage</h1>
+   <Row>
+     <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+       <Div>
+         <Field>
+           <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+             @foreach (var file in uploadedFiles)
             {
               <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
             }
@@ -21,49 +20,98 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary" Size="Size.Small" *@
-          @* Disabled="somethingWentWrong">Get Clusters</Button> *@
-        <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
-          Disabled="somethingWentWrong">Dimensions</Button>
+        <Button Clicked="@ShowConfigModal" Color="Color.Success"
+          Size="Size.Small" Disabled="somethingWentWrong">Configuration</Button>
+        <Button Clicked="@ShowFeaturesModal" Color="Color.Info"
+          Size="Size.Small" Disabled="somethingWentWrong">Dimensions</Button>
       </Buttons>
     </Column>
   </Row>
-
-  <Divider DividerType="DividerType.Dotted"/>
-  <h2>Predictor variables</h2>
-  <Row>
-    <Column>
-      <Check TValue="bool" Checked="@containsHeaders" CheckedChanged="@OnContainsHeadersChanged">
-        Use first row as columns' name?
-      </Check>
-    </Column>
-  </Row>
-  <Row Margin="Margin.Is4.FromTop">
-    @foreach (var item in predictorHeaders)
-    {
-      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
-        <Check TValue="bool" Checked="@item.IsSelected" CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header</Check>
-      </Column>
-    }
-  </Row>
-  <h2>Class variable</h2>
-    <RadioGroup
-      TValue="HeaderSelection"
-      Name="classHeaders"
-      CheckedValue="classVariable"
-      CheckedValueChanged="OnRadioChanged">
-  <Row Margin="Margin.Is4.FromTop">
-    @foreach (var item in classHeaders)
-    {
-      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
-          <Radio Value="@item">@item.Header</Radio>
-      </Column>
-    }
-  </Row>
-    </RadioGroup>
 </Container>
 
-<Modal @ref="modalRef">
+<Modal @ref="configModalRef">
+  <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+     <ModalHeader>
+       <ModalTitle>Training Parameters</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+       <Container>
+         <h2>Predictor variables</h2>
+         <Row>
+           <Column>
+             <Check TValue="bool" Checked="@containsHeaders"
+               CheckedChanged="@OnContainsHeadersChanged">
+               Use first row as columns' name?
+             </Check>
+           </Column>
+         </Row>
+         <Row Margin="Margin.Is4.FromTop">
+           @foreach (var item in predictorHeaders)
+          {
+            <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+              <Check TValue="bool" Checked="@item.IsSelected"
+                CheckedChanged="(value) => OnCheckedChanged(item, value)">
+                @item.Header</Check>
+            </Column>
+          }
+        </Row>
+        <Divider DividerType="DividerType.Dotted" />
+        <h2>Class variable</h2>
+        <RadioGroup TValue="HeaderSelection" Name="classHeaders"
+          CheckedValue="classVariable" CheckedValueChanged="OnRadioChanged">
+          <Row Margin="Margin.Is4.FromTop">
+            @if (classHeaders.Count > 0)
+            {
+              @foreach (var item in classHeaders)
+              {
+                <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+                  <Radio Value="@item">@item.Header</Radio>
+                </Column>
+              }
+            }
+            else
+            {
+              <Column ColumnSize="ColumnSize.Is12.OnDesktop.Is12">
+                <Alert Color="Color.Warning" Visible>
+                <AlertMessage>Warning</AlertMessage>
+                  <AlertDescription>You must select a class variable
+                  </AlertDescription>
+                </Alert>
+              </Column>
+            }
+          </Row>
+        </RadioGroup>
+        <Divider DividerType="DividerType.Dotted" />
+        <h2>Additional Options</h2>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column>
+            <Label>Shuffle</Label>
+            <RadioGroup TValue="bool" Name="shuffle"
+              @bind-CheckedValue="@shuffle">
+              <Radio Value="true">Yes</Radio>
+              <Radio Value="false">No</Radio>
+            </RadioGroup>
+          </Column>
+        </Row>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column>
+            <Label>Test Size (@testSize %)</Label>
+            <Field>
+              <Slider @bind-Value="@testSize" Step="1" TValue="float" Min="0" Max="100"/>
+            </Field>
+          </Column>
+        </Row>
+      </Container>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Secondary" Clicked="@SaveConfig">Train model</Button>
+      <Button Color="Color.Danger" Clicked="@HideConfigModal">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
+<Modal @ref="featuresModalRef">
   <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
      <ModalHeader>
        <ModalTitle>Dimensionality Reduction</ModalTitle>
@@ -119,14 +167,17 @@
       </Tabs>
     </ModalBody>
     <ModalFooter>
-      <Button Color="Color.Danger" Clicked="@HideModal">Close</Button>
+      <Button Color="Color.Danger" Clicked="@HideFeaturesModal">Close</Button>
     </ModalFooter>
   </ModalContent>
 </Modal>
 
 @code {
 
-  private Modal modalRef = new();
+  private Modal configModalRef = new();
+  private Modal featuresModalRef = new();
+  private float testSize = 1;
+  private bool shuffle = false;
   private string selectedTab = "corr";
   private string mapUrl = "";
   private CorrelationAnalysisResponse correlationAnalysis = null;
@@ -177,7 +228,8 @@
     try
     {
       somethingWentWrong = false;
-      this.correlationAnalysis = await RegressionServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+      this.correlationAnalysis = await
+      RegressionServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
       this.mapUrl = RegressionServ.GetImageUrl(this.correlationAnalysis.MapFileName);
     }
     catch (HttpRequestException ex)
@@ -198,6 +250,11 @@
     classHeaders = predictorHeaders
     .Where<HeaderSelection>(h => !h.IsSelected)
     .ToList();
+
+    if (!classHeaders.Contains(classVariable) || classVariable == null)
+    {
+      classVariable = classHeaders.First();
+    }
     await OnUpdateParams();
     StateHasChanged();
   }
@@ -225,14 +282,54 @@
     }
     StateHasChanged();
   }
-  private void ShowModal()
+  private void ShowFeaturesModal()
   {
-    modalRef.Show();
+    featuresModalRef.Show();
   }
 
-  private void HideModal()
+  private void HideFeaturesModal()
   {
-    modalRef.Hide();
+    featuresModalRef.Hide();
+  }
+
+  private async void ShowConfigModal()
+  {
+    RegressionSettingsData data;
+    
+    try {
+      data = await RegressionServ.GetRegressionSettingsData(selectedFileId);
+      shuffle = data.Shuffle;
+      @* classVariable = data.ClassVariable; *@
+      @* predictorHeaders.ForEach(p => {
+        if (data.PredictorVariables.Contains(p.Header))
+          p.IsSelected = true;
+        else
+          p.IsSelected = false;
+      }); *@
+
+    } catch(HttpRequestException ex) {
+    }
+    await configModalRef.Show();
+  }
+
+  private async void SaveConfig()
+  {
+    RegressionSettingsData settings = new();
+    settings.ClassVariable = classVariable.Header;
+    settings.ContainsHeaders = containsHeaders;
+    settings.FileId = selectedFileId;
+    settings.TestSize = testSize / 100;
+    settings.Shuffle = shuffle;
+    settings.PredictorVariables = predictorHeaders
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+
+    await RegressionServ.SaveRegressionSettingsData(settings);
+  }
+
+  private void HideConfigModal()
+  {
+    configModalRef.Hide();
   }
 
   private void OnSelectedTabChanged(string name)

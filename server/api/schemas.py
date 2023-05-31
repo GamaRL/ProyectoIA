@@ -67,3 +67,15 @@ class AgglomerativeClusterResponse(BaseModel):
   id: int
   properties: dict[str, float]
   cluster: int
+
+class RegressionSettingsData(BaseModel):
+  id: int|None
+  file_id: int
+  contains_headers: bool
+  predictor_variables: list[str]
+  class_variable: str
+  test_size: float
+  shuffle: bool
+
+  class Config:
+    orm_mode = True

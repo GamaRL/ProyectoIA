@@ -24,4 +24,17 @@ public class LogisticRegressionService : ILogisticRegressionService
     baseAddress = baseAddress.Substring(0, baseAddress.Length - 1);
     return Path.Join(baseAddress, uriBuilder.Path);
   }
+
+  public async Task<RegressionSettingsData> GetRegressionSettingsData(int fileId)
+  {
+    UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.LOGISTIC_REGRESSION}/files/{fileId}/settings"));
+
+    return await this._http.GetFromJsonAsync<RegressionSettingsData>(uriBuilder.Uri.ToString());
+  }
+
+  public async Task SaveRegressionSettingsData(RegressionSettingsData settings)
+  {
+    UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.LOGISTIC_REGRESSION}/files/{settings.FileId}/settings"));
+    await this._http.PostAsJsonAsync<RegressionSettingsData>(uriBuilder.Uri.ToString(), settings);
+  }
 }

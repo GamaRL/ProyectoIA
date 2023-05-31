@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import TIMESTAMP, Column, Enum, Float, ForeignKey, Integer, String, func
+from sqlalchemy import TIMESTAMP, Boolean, Column, Enum, Float, ForeignKey, Integer, String, func
 
 from .database import Base
 
@@ -47,7 +47,28 @@ class DistanceMetric(enum.IntEnum):
   CHEVISHEV = 2
   MINKOWSKI = 3
 
-
 class DimensionalityReductionType(enum.IntEnum):
   CORRELATION = 0
   PCA = 1
+
+class RegressionSettings(Base):
+  __tablename__ = "regression_settings"
+  id = Column(Integer, primary_key=True, index=True)
+  file_id = Column(Integer, ForeignKey('files.id'))
+  contains_headers = Column(Boolean)
+  _predictor_variables = Column(String)
+  class_variable = Column(String)
+  test_size = Column(Float)
+  shuffle = Column(Boolean)
+  x_train_path = Column(String)
+  y_train_path = Column(String)
+  x_validation_path = Column(String)
+  y_validation_path = Column(String)
+
+  @property
+  def predictor_variables(self):
+    return self._predictor_variables.split(';')
+
+  @predictor_variables.setter
+  def predictor_variables(self, value: list[str]):
+    self._predictor_variables = ';'.join(value)

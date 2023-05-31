@@ -1,17 +1,19 @@
 import os
 from typing import Annotated
-from fastapi import Depends, FastAPI, File, Query, Request, Response, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+
 from . import models
-from .schemas import AssociationRuleRow
+from .schemas import AssociationRuleRow, RegressionSettingsData
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
+from .crud.regression_service import get_settings_by_file_id, store_regression_params
 
 from .database import SessionLocal, engine
 
@@ -270,8 +272,20 @@ async def regr_api_get_dimensionality(
 
     return get_correlation_matrix(db, file_id, contains_headers, standarization)
 
+@app.get("/3/files/{file_id}/settings")
+async def regr_api_get_settings(file_id: int, db: Session = Depends(get_db)):
+    settings = get_settings_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return settings
+
+@app.post("/3/files/{file_id}/settings")
+async def regr_api_post_settings(settings: RegressionSettingsData, db: Session = Depends(get_db)):
+    return store_regression_params(db, settings)
+
 @app.get("/3/images/{filename}")
-async def clust_api_get_map(
+async def regr_api_get_map(
     filename: str,
     db: Session = Depends(get_db)):
         path = os.path.join("/tmp", filename)

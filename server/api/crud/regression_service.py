@@ -7,13 +7,13 @@ import seaborn as sns
 import scipy.cluster.hierarchy as shc
 import matplotlib.pyplot as ptl
 from sklearn import linear_model, model_selection
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, classification_report
 from sklearn.metrics import RocCurveDisplay
 
 from sqlalchemy.orm import Session
 
 from ..models import RegressionSettings
-from ..schemas import File, RegressionSettingsData
+from ..schemas import File, RegressionExecResponse, RegressionSettingsData, RegressionInfoResponse
 from .file_service import get_file_by_id, __get_file_path__
 from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__
 
@@ -61,6 +61,7 @@ def store_regression_params(db: Session, settings: RegressionSettingsData):
   pd.DataFrame(x_validation).to_csv(x_validation_path)
   pd.DataFrame(y_validation).to_csv(y_validation_path)
 
+  db.delete(get_settings_by_file_id(db, settings.file_id))
   db.add(created_settings)
   db.commit()
   db.refresh(created_settings)
@@ -77,25 +78,73 @@ def store_regression_params(db: Session, settings: RegressionSettingsData):
 def get_settings_by_file_id(db: Session, file_id: int):
   return db.query(RegressionSettings).filter(RegressionSettings.file_id == file_id).first()
 
-def __load_train_data__(settings: RegressionSettings):
-  x_train = pd.read_csv(settings.x_train_path).to_numpy()
-  y_train = pd.read_csv(settings.y_train_path).to_numpy()
-  x_validation = pd.read_csv(settings.x_validation_path).to_numpy()
-  y_validation = pd.read_csv(settings.y_validation_path).to_numpy()
+def get_settings_data_by_file_id(db: Session, file_id: int):
+  settings = get_settings_by_file_id(db, file_id)
+  return RegressionSettingsData(
+    id=settings.id,
+    file_id=settings.file_id,
+    predictor_variables=settings.predictor_variables,
+    contains_headers=settings.contains_headers,
+    class_variable=settings.class_variable,
+    test_size=settings.test_size,
+    shuffle=settings.shuffle,
+  )
 
-  return (x_train, y_train, x_validation, y_validation)
+def __load_train_data__(settings: RegressionSettings):
+  x_train = pd.read_csv(settings.x_train_path, index_col=0).to_numpy()
+  y_train = pd.read_csv(settings.y_train_path, index_col=0).to_numpy()
+  x_validation = pd.read_csv(settings.x_validation_path, index_col=0).to_numpy()
+  y_validation = pd.read_csv(settings.y_validation_path, index_col=0).to_numpy()
+
+  return (x_train, x_validation, y_train, y_validation)
 
 def get_predict_info(db: Session, file_id: int):
 
-  file = get_file_by_id(db, creted = settings.file_id)
+  file = get_file_by_id(db, file_id)
   settings = get_settings_by_file_id(db, file_id)
 
   x_train, x_validation, y_train, y_validation = __load_train_data__(settings)
 
   classifier = linear_model.LogisticRegression()
-  classifier.fit(x_train, y_train)
+  classifier.fit(x_train, y_train.ravel())
 
   y_classified = classifier.predict(x_validation)
 
+  matrix = pd.crosstab(
+    y_validation.ravel(),
+    y_classified,
+    rownames=["Reality"],
+    colnames=["Classification"]
+  )
+
   model_accuracy_score = accuracy_score(y_validation, y_classified)
   model_roc_img = __create_roc_image__(file, classifier, x_validation, y_validation)
+
+  return RegressionInfoResponse(
+    file_id=settings.file_id,
+    accuracy_score=model_accuracy_score,
+    roc_image_file=model_roc_img,
+    crosstab=matrix.to_numpy().tolist(),
+    report=classification_report(y_validation, y_classified, output_dict=True)
+  )
+
+def get_prediction(db: Session, file_id: int, row_data = dict[str, float]):
+
+  settings = get_settings_by_file_id(db, file_id)
+
+  x_train, x_validation, y_train, y_validation = __load_train_data__(settings)
+
+  classifier = linear_model.LogisticRegression()
+  classifier.fit(x_train, y_train.ravel())
+
+  x_data = pd.DataFrame(row_data, index=[0]).to_numpy()
+  y_classified = classifier.predict(x_data)
+  probability = classifier.predict_proba(x_data)
+
+  print(y_classified[0])
+
+  return RegressionExecResponse(
+    label=str(y_classified[0]),
+    probability_0=probability[0][0],
+    probability_1=probability[0][1]
+  )

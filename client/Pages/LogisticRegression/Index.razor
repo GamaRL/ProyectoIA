@@ -1,5 +1,8 @@
 @page "/algorithms/regression"
 
+@using System;
+@using System.Collections.Generic; 
+
 @inject IUploadFileService UploadFileServ;
 @inject ILogisticRegressionService RegressionServ;
 
@@ -27,6 +30,50 @@
       </Buttons>
     </Column>
   </Row>
+  <Divider DividerType="DividerType.Dotted"></Divider>
+  <Row>
+    <Column>
+      <Heading DisplayHeadingSize="DisplayHeadingSize.Is2">Test new registers</Heading>
+    </Column>
+  </Row>
+  <Row>
+    @if (testData != null)
+    {
+      @foreach (var key in testData.Keys)
+      {
+        <Column ColumnSize="ColumnSize.Is4">
+          <Label>@key</Label>
+          <NumericPicker TValue="float" @bind-Value="@testData[key]"/>
+        </Column>
+      }
+    }
+  </Row>
+  <Row Margin="Margin.Is2.FromTop">
+    <Column ColumnSize="ColumnSize.Is4">
+      <Button Color="Color.Success" Clicked="@SendRegisterData">Send Data</Button>
+    </Column>
+  </Row>
+  @if(executionResponse != null)
+  {
+    <Row Margin="Margin.Is2.FromTop">
+      <Column ColumnSize="ColumnSize.Is12">
+        <Alert Visible Color="Color.Success">
+          <AlertMessage>The asigned label was `@executionResponse.Label`</AlertMessage>
+          <AlertDescription>With a probability of
+            @if(executionResponse.Label == "0")
+            {
+              @executionResponse.Probability0
+            }
+            else
+            {
+              @executionResponse.Probability1
+            }
+          </AlertDescription>
+          <CloseButton/>
+        </Alert>
+      </Column>
+    </Row>
+  }
 </Container>
 
 <Modal @ref="configModalRef">
@@ -58,7 +105,7 @@
         </Row>
         <Divider DividerType="DividerType.Dotted" />
         <h2>Class variable</h2>
-        <RadioGroup TValue="HeaderSelection" Name="classHeaders"
+        <RadioGroup TValue="string" Name="classHeaders"
           CheckedValue="classVariable" CheckedValueChanged="OnRadioChanged">
           <Row Margin="Margin.Is4.FromTop">
             @if (classHeaders.Count > 0)
@@ -66,7 +113,7 @@
               @foreach (var item in classHeaders)
               {
                 <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
-                  <Radio Value="@item">@item.Header</Radio>
+                  <Radio Value="@item">@item</Radio>
                 </Column>
               }
             }
@@ -106,6 +153,7 @@
     </ModalBody>
     <ModalFooter>
       <Button Color="Color.Secondary" Clicked="@SaveConfig">Train model</Button>
+      <Button Color="Color.Info" Clicked="@GetTrainInfo">Info</Button>
       <Button Color="Color.Danger" Clicked="@HideConfigModal">Close</Button>
     </ModalFooter>
   </ModalContent>
@@ -181,13 +229,17 @@
   private string selectedTab = "corr";
   private string mapUrl = "";
   private CorrelationAnalysisResponse correlationAnalysis = null;
+  private RegressionInfoResponse infoResponse = null;
   private List<FileModel> uploadedFiles = new();
-  private HeaderSelection classVariable;
+  private string classVariable;
   private int selectedFileId;
   private List<HeaderSelection> predictorHeaders = new();
-  private List<HeaderSelection> classHeaders = new();
+  private List<string> classHeaders = new();
   private bool containsHeaders = true;
   private bool somethingWentWrong;
+  private Dictionary<string, float> testData = new();
+  private RegressionSettingsData settings;
+  private RegressionExecutionResponse executionResponse = null;
 
   protected override async Task OnInitializedAsync()
   {
@@ -200,6 +252,20 @@
     await GetHeaders();
     await OnUpdateParams();
     StateHasChanged();
+  }
+
+  private async Task GetSettings()
+  {
+    try
+    {
+      settings = await RegressionServ.GetRegressionSettingsData(selectedFileId);
+    }
+    catch(HttpRequestException) {}
+    testData.Clear();
+    foreach (var variable in settings.PredictorVariables)
+    {
+      testData.Add(variable.ToString(), 0f);
+    }
   }
 
   public async Task GetHeaders()
@@ -247,11 +313,13 @@
   {
     headerSelection.IsSelected = value;
 
+    classHeaders.Clear();
     classHeaders = predictorHeaders
     .Where<HeaderSelection>(h => !h.IsSelected)
+    .Select(p => p.Header.ToString())
     .ToList();
 
-    if (!classHeaders.Contains(classVariable) || classVariable == null)
+    if (!classHeaders.Select(p => p.ToString()).Contains(classVariable) || classVariable == null)
     {
       classVariable = classHeaders.First();
     }
@@ -259,7 +327,7 @@
     StateHasChanged();
   }
 
-  public async Task OnRadioChanged(HeaderSelection value)
+  public async Task OnRadioChanged(string value)
   {
     classVariable = value;
     await OnUpdateParams();
@@ -294,28 +362,36 @@
 
   private async void ShowConfigModal()
   {
-    RegressionSettingsData data;
-    
-    try {
-      data = await RegressionServ.GetRegressionSettingsData(selectedFileId);
-      shuffle = data.Shuffle;
-      @* classVariable = data.ClassVariable; *@
-      @* predictorHeaders.ForEach(p => {
-        if (data.PredictorVariables.Contains(p.Header))
-          p.IsSelected = true;
-        else
-          p.IsSelected = false;
-      }); *@
-
-    } catch(HttpRequestException ex) {
-    }
+    classHeaders.Clear();
+    await GetSettings();
+    shuffle = settings.Shuffle;
+    testSize = settings.TestSize * 100;
+    Console.WriteLine(testSize);
+    var headers = settings.PredictorVariables.Select(p => p.ToString()).ToList();
+    predictorHeaders.ForEach(p => {
+      string headerName = p.Header.ToString();
+      if (headers.Contains(headerName))
+      {
+        p.IsSelected = true;
+      }
+      else
+      {
+        p.IsSelected = false;
+        classHeaders.Add(headerName);
+        if (settings.ClassVariable.ToString() == headerName)
+        {
+          classVariable = headerName;
+        }
+      }
+    });
     await configModalRef.Show();
+    StateHasChanged();
   }
 
   private async void SaveConfig()
   {
     RegressionSettingsData settings = new();
-    settings.ClassVariable = classVariable.Header;
+    settings.ClassVariable = classVariable;
     settings.ContainsHeaders = containsHeaders;
     settings.FileId = selectedFileId;
     settings.TestSize = testSize / 100;
@@ -335,5 +411,16 @@
   private void OnSelectedTabChanged(string name)
   {
     selectedTab = name;
+  }
+
+  private void GetTrainInfo()
+  {
+    RegressionServ.GetRegressionInfo(selectedFileId);
+  }
+
+  private async void SendRegisterData()
+  {
+    executionResponse = await RegressionServ.GetRegressionExecutionResponse(selectedFileId, testData);
+    StateHasChanged();
   }
 }

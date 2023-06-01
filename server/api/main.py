@@ -13,7 +13,7 @@ from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_f
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
-from .crud.regression_service import get_settings_by_file_id, store_regression_params
+from .crud.regression_service import get_predict_info, get_prediction, get_settings_data_by_file_id, store_regression_params
 
 from .database import SessionLocal, engine
 
@@ -274,11 +274,29 @@ async def regr_api_get_dimensionality(
 
 @app.get("/3/files/{file_id}/settings")
 async def regr_api_get_settings(file_id: int, db: Session = Depends(get_db)):
-    settings = get_settings_by_file_id(db, file_id)
+    settings = get_settings_data_by_file_id(db, file_id)
 
     if settings == None:
         raise HTTPException(status_code=404, detail="Item not found")
     return settings
+
+@app.get("/3/files/{file_id}/info")
+async def regr_api_get_info(file_id: int, db: Session = Depends(get_db)):
+    settings = get_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_predict_info(db, file_id)
+
+@app.post("/3/files/{file_id}/classify")
+async def regr_api_get_prediction(file_id: int, row_data: dict[str, float], db: Session = Depends(get_db)):
+    settings = get_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_prediction(db, file_id, row_data)
 
 @app.post("/3/files/{file_id}/settings")
 async def regr_api_post_settings(settings: RegressionSettingsData, db: Session = Depends(get_db)):

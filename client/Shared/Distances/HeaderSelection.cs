@@ -8,4 +8,10 @@ public class HeaderSelection
     this.Header = Header;
     this.IsSelected = true;
   }
+
+  public HeaderSelection(HeaderSelection selection)
+  {
+    this.Header = selection.Header;
+    this.IsSelected = false;
+  }
 }

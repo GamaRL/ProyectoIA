@@ -79,3 +79,15 @@ class RegressionSettingsData(BaseModel):
 
   class Config:
     orm_mode = True
+
+class RegressionInfoResponse(BaseModel):
+  file_id: int
+  accuracy_score: float
+  roc_image_file: str
+  crosstab: list[list[float]]
+  report: dict
+
+class RegressionExecResponse(BaseModel):
+  label: str
+  probability_0: float
+  probability_1: float

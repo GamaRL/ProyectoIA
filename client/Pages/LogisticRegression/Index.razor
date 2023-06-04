@@ -149,6 +149,15 @@
             </Field>
           </Column>
         </Row>
+        @if(showingInfo)
+        {
+          <Divider DividerType="DividerType.Dotted" />
+          <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+              <b>Accuracy score:</b> @infoResponse.AccuracyScore
+            </Column>
+          </Row>
+        }
       </Container>
     </ModalBody>
     <ModalFooter>
@@ -240,6 +249,7 @@
   private Dictionary<string, float> testData = new();
   private RegressionSettingsData settings;
   private RegressionExecutionResponse executionResponse = null;
+  private bool showingInfo = false;
 
   protected override async Task OnInitializedAsync()
   {
@@ -260,12 +270,23 @@
     {
       settings = await RegressionServ.GetRegressionSettingsData(selectedFileId);
     }
-    catch(HttpRequestException) {}
+    catch(HttpRequestException) {
+      settings = new();
+      settings.Id = -1;
+      settings.FileId = selectedFileId;
+      settings.ContainsHeaders = true;
+      settings.PredictorVariables = new();
+      settings.ClassVariable = null;
+      settings.TestSize = 0.20f;
+      settings.Shuffle = true;
+    }
+
     testData.Clear();
     foreach (var variable in settings.PredictorVariables)
     {
       testData.Add(variable.ToString(), 0f);
     }
+    StateHasChanged();
   }
 
   public async Task GetHeaders()
@@ -291,6 +312,7 @@
     var cols = predictorHeaders
     .Where<HeaderSelection>(h => h.IsSelected)
     .Select<HeaderSelection, object>(h => h.Header).ToList();
+    await GetSettings();
     try
     {
       somethingWentWrong = false;
@@ -313,16 +335,6 @@
   {
     headerSelection.IsSelected = value;
 
-    classHeaders.Clear();
-    classHeaders = predictorHeaders
-    .Where<HeaderSelection>(h => !h.IsSelected)
-    .Select(p => p.Header.ToString())
-    .ToList();
-
-    if (!classHeaders.Select(p => p.ToString()).Contains(classVariable) || classVariable == null)
-    {
-      classVariable = classHeaders.First();
-    }
     await OnUpdateParams();
     StateHasChanged();
   }
@@ -363,10 +375,10 @@
   private async void ShowConfigModal()
   {
     classHeaders.Clear();
-    await GetSettings();
+    classHeaders = (await RegressionServ.GetValidClassVariables(selectedFileId))
+    .Select(h => h.ToString()).ToList();
     shuffle = settings.Shuffle;
     testSize = settings.TestSize * 100;
-    Console.WriteLine(testSize);
     var headers = settings.PredictorVariables.Select(p => p.ToString()).ToList();
     predictorHeaders.ForEach(p => {
       string headerName = p.Header.ToString();
@@ -377,8 +389,7 @@
       else
       {
         p.IsSelected = false;
-        classHeaders.Add(headerName);
-        if (settings.ClassVariable.ToString() == headerName)
+        if (settings.ClassVariable != null && settings.ClassVariable.ToString() == headerName)
         {
           classVariable = headerName;
         }
@@ -401,6 +412,7 @@
     .Select<HeaderSelection, object>(h => h.Header).ToList();
 
     await RegressionServ.SaveRegressionSettingsData(settings);
+    await GetSettings();
   }
 
   private void HideConfigModal()
@@ -413,9 +425,11 @@
     selectedTab = name;
   }
 
-  private void GetTrainInfo()
+  private async Task GetTrainInfo()
   {
-    RegressionServ.GetRegressionInfo(selectedFileId);
+    infoResponse = await RegressionServ.GetRegressionInfo(selectedFileId);
+    showingInfo = true;
+    StateHasChanged();
   }
 
   private async void SendRegisterData()

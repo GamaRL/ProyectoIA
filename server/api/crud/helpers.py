@@ -26,3 +26,10 @@ def __validate_numeric_columns__(data: pd.DataFrame):
     if data[col].dtype.kind not in 'iufc':
       return False
   return True
+
+def __filter_unique_columns__(data: pd.DataFrame, n: int):
+  cols = []
+  for col in data.columns.to_list():
+    if data[[col]].nunique().to_list()[0] == n:
+      cols.append(col)
+  return cols

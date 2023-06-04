@@ -46,6 +46,13 @@ public class LogisticRegressionService : ILogisticRegressionService
     return await this._http.GetFromJsonAsync<RegressionSettingsData>(uriBuilder.Uri.ToString());
   }
 
+  public async Task<List<object>> GetValidClassVariables(int fileId)
+  {
+    UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.LOGISTIC_REGRESSION}/files/{fileId}/unique"));
+
+    return await this._http.GetFromJsonAsync<List<object>>(uriBuilder.Uri.ToString());
+  }
+
   public async Task SaveRegressionSettingsData(RegressionSettingsData settings)
   {
     UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.LOGISTIC_REGRESSION}/files/{settings.FileId}/settings"));

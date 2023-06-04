@@ -6,4 +6,5 @@ public interface ILogisticRegressionService
   Task SaveRegressionSettingsData(RegressionSettingsData settings);
   Task<RegressionInfoResponse> GetRegressionInfo(int fileId);
   Task<RegressionExecutionResponse> GetRegressionExecutionResponse(int fileId, Dictionary<string, float> register);
+  Task<List<object>> GetValidClassVariables(int fileId);
 }

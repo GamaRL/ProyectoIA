@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from ..models import RegressionSettings
 from ..schemas import File, RegressionExecResponse, RegressionSettingsData, RegressionInfoResponse
 from .file_service import get_file_by_id, __get_file_path__
-from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__
+from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_unique_columns__
 
 def __create_roc_image__(file: File, classifier, x_validation, y_validation):
   RocCurveDisplay.from_estimator(classifier, x_validation, y_validation, name=file.name)
@@ -61,7 +61,7 @@ def store_regression_params(db: Session, settings: RegressionSettingsData):
   pd.DataFrame(x_validation).to_csv(x_validation_path)
   pd.DataFrame(y_validation).to_csv(y_validation_path)
 
-  db.delete(get_settings_by_file_id(db, settings.file_id))
+  db.query(RegressionSettings).filter(RegressionSettings.file_id == settings.file_id).delete()
   db.add(created_settings)
   db.commit()
   db.refresh(created_settings)
@@ -80,6 +80,10 @@ def get_settings_by_file_id(db: Session, file_id: int):
 
 def get_settings_data_by_file_id(db: Session, file_id: int):
   settings = get_settings_by_file_id(db, file_id)
+
+  if settings == None:
+    return None
+
   return RegressionSettingsData(
     id=settings.id,
     file_id=settings.file_id,
@@ -97,6 +101,14 @@ def __load_train_data__(settings: RegressionSettings):
   y_validation = pd.read_csv(settings.y_validation_path, index_col=0).to_numpy()
 
   return (x_train, x_validation, y_train, y_validation)
+
+def get_valid_class_variables(db: Session, file_id: int):
+
+  file = get_file_by_id(db, file_id = file_id)
+  path = __get_file_path__(file)
+  data = pd.read_csv(path, header=None if not True else 0)
+
+  return __filter_unique_columns__(data, 2)
 
 def get_predict_info(db: Session, file_id: int):
 

@@ -60,14 +60,7 @@
         <Alert Visible Color="Color.Success">
           <AlertMessage>The asigned label was `@executionResponse.Label`</AlertMessage>
           <AlertDescription>With a probability of
-            @if(executionResponse.Label == "0")
-            {
-              @executionResponse.Probability0
-            }
-            else
-            {
-              @executionResponse.Probability1
-            }
+              @Math.Max(@executionResponse.Probability0, @executionResponse.Probability1)
           </AlertDescription>
           <CloseButton/>
         </Alert>

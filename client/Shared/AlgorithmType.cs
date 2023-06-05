@@ -4,4 +4,6 @@ public enum AlgorithmType
   DISTANCES = 1,
   CLUSTERING = 2,
   LOGISTIC_REGRESSION = 3,
+  CLASSIFICATION = 4,
+  PROGNOSIS = 5,
 }

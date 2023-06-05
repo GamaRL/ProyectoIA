@@ -10,6 +10,8 @@ class FileType(enum.IntEnum):
   DISTANCES = 1
   CLUSTERING = 2
   LOGISTIC_REGRESSION = 3
+  CLASSIFICATION = 4
+  PROGNOSIS = 5
 
 
 class File(Base):

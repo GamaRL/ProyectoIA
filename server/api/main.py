@@ -312,3 +312,55 @@ async def regr_api_get_map(
     db: Session = Depends(get_db)):
         path = os.path.join("/tmp", filename)
         return FileResponse(path, filename=filename, media_type="img/png")
+
+# Classification endopoints
+@app.post("/4/files/")
+async def regr_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+    return save_file(db, file, models.FileType.CLASSIFICATION)
+
+@app.get("/4/files/")
+async def prog_api_get_files(db: Session = Depends(get_db)):
+    return get_files(db, models.FileType.CLASSIFICATION)
+
+@app.delete("/4/files/{file_id}")
+async def prog_api_delete_file(file_id: int, db: Session = Depends(get_db)):
+    return delete_file_by_id(db, file_id)
+
+@app.get("/4/files/{file_id}")
+async def prog_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+    if download:
+        file: models.File = get_file_by_id(db, file_id)
+        path: str = __get_file_path__(file)
+        return FileResponse(path, filename=file.name, media_type="text/csv")
+
+    return get_file_content_by_id(db, file_id)
+
+@app.get("/4/files/{file_id}/headers")
+async def prog_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+    return get_file_headers(db, file_id, contains_headers)
+
+# Prognosis endopoints
+@app.post("/5/files/")
+async def regr_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+    return save_file(db, file, models.FileType.PROGNOSIS)
+
+@app.get("/5/files/")
+async def prog_api_get_files(db: Session = Depends(get_db)):
+    return get_files(db, models.FileType.PROGNOSIS)
+
+@app.delete("/5/files/{file_id}")
+async def prog_api_delete_file(file_id: int, db: Session = Depends(get_db)):
+    return delete_file_by_id(db, file_id)
+
+@app.get("/5/files/{file_id}")
+async def prog_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+    if download:
+        file: models.File = get_file_by_id(db, file_id)
+        path: str = __get_file_path__(file)
+        return FileResponse(path, filename=file.name, media_type="text/csv")
+
+    return get_file_content_by_id(db, file_id)
+
+@app.get("/5/files/{file_id}/headers")
+async def prog_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+    return get_file_headers(db, file_id, contains_headers)

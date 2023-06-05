@@ -1,8 +1,8 @@
-@page "/algorithms/trees_forests/files"
+@page "/algorithms/classification/files"
 @inject IUploadFileService UploadFileServ;
 
 <Container Fluid>
-  <h1>Files for Clustering</h1>
+  <h1>Files for Classification</h1>
   <Row>
     <Column ColumnSize="ColumnSize.Is10">
       <Field>
@@ -102,7 +102,7 @@
     {
       var newFile = await UploadFileServ
       .Upload(this._file.OpenReadStream(UploadFileServ.GetMaxFileSize()),
-      this._file.Name, AlgorithmType.CLUSTERING);
+      this._file.Name, AlgorithmType.CLASSIFICATION);
 
       this.uploadedFiles.Add(newFile);
 
@@ -112,7 +112,7 @@
 
   private async Task GetFileContent(int fileId)
   {
-    var content = await UploadFileServ.GetFileContent(fileId, AlgorithmType.CLUSTERING);
+    var content = await UploadFileServ.GetFileContent(fileId, AlgorithmType.CLASSIFICATION);
     _fileContent = content;
     await modalRef.Show();
     StateHasChanged();
@@ -120,19 +120,19 @@
 
   private string GetFileUrl(int fileId)
   {
-    return UploadFileServ.GetFileUrl(fileId, AlgorithmType.CLUSTERING);
+    return UploadFileServ.GetFileUrl(fileId, AlgorithmType.CLASSIFICATION);
   }
 
   private async Task DeleteFile(int fileId)
   {
-    var deletedFile = await UploadFileServ.RemoveFile(fileId, AlgorithmType.CLUSTERING);
+    var deletedFile = await UploadFileServ.RemoveFile(fileId, AlgorithmType.CLASSIFICATION);
     this.uploadedFiles.RemoveAll(s => s.Id == deletedFile.Id);
     StateHasChanged();
   }
 
   protected override async Task OnInitializedAsync()
   {
-    this.uploadedFiles.AddRange(await UploadFileServ.GetFiles(AlgorithmType.CLUSTERING));
+    this.uploadedFiles.AddRange(await UploadFileServ.GetFiles(AlgorithmType.CLASSIFICATION));
 
     await base.OnInitializedAsync();
     StateHasChanged();

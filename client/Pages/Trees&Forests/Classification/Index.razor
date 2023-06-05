@@ -1,5 +1,119 @@
 @page "/algorithms/classification"
 
+@inject IUploadFileService UploadFileServ;
+
 <Container Fluid Margin="Margin.Is5.FromBottom">
-   <h1>Classification</h1>
+    <h1>Prognosis</h1>
+    <Row>
+       <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+          <Div>
+             <Field>
+                <Select TValue="int"
+                   SelectedValueChanged="OnSelectedFileChanged">
+                   @foreach (var file in uploadedFiles)
+                  {
+                     <SelectItem Value="@file.Id">@file.Id - @file.Name
+                     </SelectItem>
+                  }
+               </Select>
+            </Field>
+         </Div>
+      </Column>
+      <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+         <Buttons>
+            @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary"
+               Size="Size.Small" Disabled="somethingWentWrong">Get
+               Clusters</Button> *@
+            @* <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
+            Disabled="somethingWentWrong">Dimensions</Button> *@
+         </Buttons>
+      </Column>
+   </Row>
+   <Row Margin="Margin.Is4.FromTop">
+      @foreach (var item in headers)
+      {
+         <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+            <Check TValue="bool" Checked="@item.IsSelected"
+               CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header
+            </Check>
+         </Column>
+      }
+   </Row>
+   <Divider DividerType="DividerType.Dotted" />
 </Container>
+
+@code {
+   private List<FileModel> uploadedFiles = new();
+   private int selectedFileId;
+   private List<HeaderSelection> headers = new();
+   private bool somethingWentWrong = false;
+   private bool containsHeaders = true;
+
+   protected override async Task OnInitializedAsync()
+   {
+      await base.OnInitializedAsync();
+
+      this.uploadedFiles.AddRange(await
+      UploadFileServ.GetFiles(AlgorithmType.CLASSIFICATION));
+      selectedFileId = this.uploadedFiles.First().Id;
+
+      Console.WriteLine(selectedFileId);
+      await GetHeaders();
+      await OnUpdateParams();
+
+      StateHasChanged();
+   }
+
+   public async Task GetHeaders()
+   {
+      var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
+      AlgorithmType.CLASSIFICATION);
+
+      headers.Clear();
+      foreach (var header in data)
+         headers.Add(new HeaderSelection(header));
+   }
+
+   public async void OnSelectedFileChanged(int value)
+   {
+      selectedFileId = value;
+      await GetHeaders();
+      await OnUpdateParams();
+
+      StateHasChanged();
+   }
+
+   public async void OnContainsHeadersChanged(bool value)
+   {
+      containsHeaders = value;
+      headers.Clear();
+      await GetHeaders();
+      await OnUpdateParams();
+      StateHasChanged();
+   }
+
+   public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
+   {
+      headerSelection.IsSelected = value;
+      await OnUpdateParams();
+      StateHasChanged();
+   }
+
+   public async Task OnUpdateParams()
+   {
+      var cols = headers
+      .Where<HeaderSelection>(h => h.IsSelected)
+      .Select<HeaderSelection, object>(h => h.Header).ToList();
+      try
+      {
+         somethingWentWrong = false;
+      }
+      catch (HttpRequestException ex)
+      {
+         if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
+         {
+            somethingWentWrong = true;
+         }
+      }
+   }
+}

@@ -74,3 +74,30 @@ class RegressionSettings(Base):
   @predictor_variables.setter
   def predictor_variables(self, value: list[str]):
     self._predictor_variables = ';'.join(value)
+
+class PrognosisSettings(Base):
+  __tablename__ = "prognosis_settings"
+  id = Column(Integer, primary_key=True, index=True)
+  file_id = Column(Integer, ForeignKey('files.id'))
+  contains_headers = Column(Boolean)
+  _predictor_variables = Column(String)
+  prognosis_variable = Column(String)
+  test_size = Column(Float)
+  shuffle = Column(Boolean)
+  use_forest = Column(Boolean)
+  n_estimators = Column(Integer)
+  max_depth = Column(Integer)
+  min_samples_split = Column(Integer)
+  min_samples_leaf = Column(Integer)
+  x_train_path = Column(String)
+  y_train_path = Column(String)
+  x_validation_path = Column(String)
+  y_validation_path = Column(String)
+
+  @property
+  def predictor_variables(self):
+    return self._predictor_variables.split(';')
+
+  @predictor_variables.setter
+  def predictor_variables(self, value: list[str]):
+    self._predictor_variables = ';'.join(value)

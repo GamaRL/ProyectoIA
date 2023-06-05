@@ -30,6 +30,9 @@ builder.Services
   .AddSingleton<ILogisticRegressionService, LogisticRegressionService>();
 
 builder.Services
+  .AddSingleton<IPrognosisService, PrognosisService>();
+
+builder.Services
   .AddBlazorise(options => {
     options.Immediate = true;
   })

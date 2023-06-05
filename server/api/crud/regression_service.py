@@ -78,7 +78,7 @@ def store_regression_params(db: Session, settings: RegressionSettingsData):
 def get_settings_by_file_id(db: Session, file_id: int):
   return db.query(RegressionSettings).filter(RegressionSettings.file_id == file_id).first()
 
-def get_settings_data_by_file_id(db: Session, file_id: int):
+def get_regr_settings_data_by_file_id(db: Session, file_id: int):
   settings = get_settings_by_file_id(db, file_id)
 
   if settings == None:

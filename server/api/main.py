@@ -5,15 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-
 from . import models
-from .schemas import AssociationRuleRow, RegressionSettingsData
+from .schemas import AssociationRuleRow, PrognosisSettingsData, RegressionSettingsData
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
-from .crud.regression_service import get_predict_info, get_prediction, get_settings_data_by_file_id, get_valid_class_variables, store_regression_params
+from .crud.prognosis_service import get_prog_settings_data_by_file_id, store_prognosis_params
+from .crud.regression_service import get_predict_info, get_prediction, get_regr_settings_data_by_file_id, get_valid_class_variables, store_regression_params
 
 from .database import SessionLocal, engine
 
@@ -274,7 +274,7 @@ async def regr_api_get_dimensionality(
 
 @app.get("/3/files/{file_id}/settings")
 async def regr_api_get_settings(file_id: int, db: Session = Depends(get_db)):
-    settings = get_settings_data_by_file_id(db, file_id)
+    settings = get_regr_settings_data_by_file_id(db, file_id)
 
     if settings == None:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -282,7 +282,7 @@ async def regr_api_get_settings(file_id: int, db: Session = Depends(get_db)):
 
 @app.get("/3/files/{file_id}/info")
 async def regr_api_get_info(file_id: int, db: Session = Depends(get_db)):
-    settings = get_settings_data_by_file_id(db, file_id)
+    settings = get_regr_settings_data_by_file_id(db, file_id)
 
     if settings == None:
         raise HTTPException(status_code=404, detail="Unable to find this information")
@@ -291,7 +291,7 @@ async def regr_api_get_info(file_id: int, db: Session = Depends(get_db)):
 
 @app.post("/3/files/{file_id}/classify")
 async def regr_api_get_prediction(file_id: int, row_data: dict[str, float], db: Session = Depends(get_db)):
-    settings = get_settings_data_by_file_id(db, file_id)
+    settings = get_regr_settings_data_by_file_id(db, file_id)
 
     if settings == None:
         raise HTTPException(status_code=404, detail="Unable to find this information")
@@ -315,19 +315,19 @@ async def regr_api_get_map(
 
 # Classification endopoints
 @app.post("/4/files/")
-async def regr_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+async def class_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
     return save_file(db, file, models.FileType.CLASSIFICATION)
 
 @app.get("/4/files/")
-async def prog_api_get_files(db: Session = Depends(get_db)):
+async def class_api_get_files(db: Session = Depends(get_db)):
     return get_files(db, models.FileType.CLASSIFICATION)
 
 @app.delete("/4/files/{file_id}")
-async def prog_api_delete_file(file_id: int, db: Session = Depends(get_db)):
+async def class_api_delete_file(file_id: int, db: Session = Depends(get_db)):
     return delete_file_by_id(db, file_id)
 
 @app.get("/4/files/{file_id}")
-async def prog_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
+async def class_api_get_file(file_id: int, download: bool = False, db: Session = Depends(get_db)):
     if download:
         file: models.File = get_file_by_id(db, file_id)
         path: str = __get_file_path__(file)
@@ -336,12 +336,12 @@ async def prog_api_get_file(file_id: int, download: bool = False, db: Session = 
     return get_file_content_by_id(db, file_id)
 
 @app.get("/4/files/{file_id}/headers")
-async def prog_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
+async def class_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
     return get_file_headers(db, file_id, contains_headers)
 
 # Prognosis endopoints
 @app.post("/5/files/")
-async def regr_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
+async def prog_api_create_file(db: Session = Depends(get_db), file: UploadFile = File(...)):
     return save_file(db, file, models.FileType.PROGNOSIS)
 
 @app.get("/5/files/")
@@ -364,3 +364,15 @@ async def prog_api_get_file(file_id: int, download: bool = False, db: Session = 
 @app.get("/5/files/{file_id}/headers")
 async def prog_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
     return get_file_headers(db, file_id, contains_headers)
+
+@app.get("/5/files/{file_id}/settings")
+async def prog_api_get_settings(file_id: int, db: Session = Depends(get_db)):
+    settings = get_prog_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return settings
+
+@app.post("/5/files/{file_id}/settings")
+async def prog_api_post_settings(settings: PrognosisSettingsData, db: Session = Depends(get_db)):
+    return store_prognosis_params(db, settings)

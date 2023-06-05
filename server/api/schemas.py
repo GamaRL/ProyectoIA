@@ -80,6 +80,23 @@ class RegressionSettingsData(BaseModel):
   class Config:
     orm_mode = True
 
+class PrognosisSettingsData(BaseModel):
+  id: int|None
+  file_id: int
+  contains_headers: bool
+  predictor_variables: list[str]
+  prognosis_variable: str
+  test_size: float
+  shuffle: bool
+  use_forest: bool
+  n_estimators: int
+  max_depth: int
+  min_samples_split: int
+  min_samples_leaf: int
+
+  class Config:
+    orm_mode = True
+
 class RegressionInfoResponse(BaseModel):
   file_id: int
   accuracy_score: float

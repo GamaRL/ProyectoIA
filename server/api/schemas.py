@@ -108,3 +108,6 @@ class RegressionExecResponse(BaseModel):
   label: str
   probability_0: float
   probability_1: float
+
+class PrognosisExecResponse(BaseModel):
+  value: float

@@ -120,14 +120,14 @@ def get_prognosis(db: Session, file_id: int, row_data = dict[str, float]):
       max_depth=settings.max_depth,
       min_samples_leaf=settings.min_samples_leaf,
       min_samples_split=settings.min_samples_split,
-      random_state=1234
+      random_state=0
     )
   else:
     prognosticator = DecisionTreeRegressor(
       max_depth=settings.max_depth,
       min_samples_leaf=settings.min_samples_leaf,
       min_samples_split=settings.min_samples_split,
-      random_state=1234
+      random_state=0
     )
 
   prognosticator.fit(x_train, y_train.ravel())
@@ -137,4 +137,5 @@ def get_prognosis(db: Session, file_id: int, row_data = dict[str, float]):
 
   return PrognosisExecResponse(
     value=y_classified[0],
+    prognosis_variable=str(settings.prognosis_variable)
   )

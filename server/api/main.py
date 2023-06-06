@@ -12,7 +12,7 @@ from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_f
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
-from .crud.prognosis_service import get_prog_settings_data_by_file_id, store_prognosis_params
+from .crud.prognosis_service import get_prog_settings_data_by_file_id, get_prognosis, store_prognosis_params
 from .crud.regression_service import get_predict_info, get_prediction, get_regr_settings_data_by_file_id, get_valid_class_variables, store_regression_params
 
 from .database import SessionLocal, engine
@@ -183,10 +183,9 @@ async def clust_api_get_headers(file_id: int, contains_headers: bool = False, db
 async def clust_api_get_dimensionality(
     file_id: int,
     contains_headers: bool = False,
-    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
     db: Session = Depends(get_db)):
 
-    return get_correlation_matrix(db, file_id, contains_headers, standarization)
+    return get_correlation_matrix(db, file_id, contains_headers)
 
 @app.get("/2/images/{filename}")
 async def clust_api_get_map(
@@ -267,10 +266,9 @@ async def regr_api_get_headers(file_id: int, contains_headers: bool = False, db:
 async def regr_api_get_dimensionality(
     file_id: int,
     contains_headers: bool = False,
-    standarization: Annotated[models.StandarizationMethod, Query()] = models.StandarizationMethod.NONE,
     db: Session = Depends(get_db)):
 
-    return get_correlation_matrix(db, file_id, contains_headers, standarization)
+    return get_correlation_matrix(db, file_id, contains_headers)
 
 @app.get("/3/files/{file_id}/settings")
 async def regr_api_get_settings(file_id: int, db: Session = Depends(get_db)):
@@ -376,3 +374,27 @@ async def prog_api_get_settings(file_id: int, db: Session = Depends(get_db)):
 @app.post("/5/files/{file_id}/settings")
 async def prog_api_post_settings(settings: PrognosisSettingsData, db: Session = Depends(get_db)):
     return store_prognosis_params(db, settings)
+
+@app.post("/5/files/{file_id}/prognosis")
+async def prog_api_get_prediction(file_id: int, row_data: dict[str, float], db: Session = Depends(get_db)):
+    settings = get_prog_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_prognosis(db, file_id, row_data)
+
+@app.get("/5/files/{file_id}/dimensionality")
+async def regr_api_get_dimensionality(
+    file_id: int,
+    contains_headers: bool = False,
+    db: Session = Depends(get_db)):
+
+    return get_correlation_matrix(db, file_id, contains_headers)
+
+@app.get("/5/images/{filename}")
+async def clust_api_get_map(
+    filename: str,
+    db: Session = Depends(get_db)):
+        path = os.path.join("/tmp", filename)
+        return FileResponse(path, filename=filename, media_type="img/png")

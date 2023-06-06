@@ -14,8 +14,7 @@
           <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
             @foreach (var file in uploadedFiles)
             {
-              <SelectItem Value="@file.Id">@file.Id - @file.Name
-              </SelectItem>
+              <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
             }
           </Select>
         </Field>
@@ -26,7 +25,9 @@
         @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary"
         Size="Size.Small" Disabled="somethingWentWrong">Get
         Clusters</Button> *@
-        <Button Clicked="@ShowConfigModal" Color="Color.Info" Size="Size.Small"
+        <Button Clicked="@ShowFeaturesModal" Color="Color.Info" Size="Size.Small"
+          Disabled="somethingWentWrong">Dimensions</Button>
+        <Button Clicked="@ShowConfigModal" Color="Color.Warning" Size="Size.Small"
           Disabled="somethingWentWrong">Settings</Button>
       </Buttons>
     </Column>
@@ -45,6 +46,19 @@
       <Button Color="Color.Success" Clicked="@SendRegisterData">Send Data</Button>
     </Column>
   </Row>
+  @if(execution != null)
+  {
+    <Row Margin="Margin.Is2.FromTop">
+      <Column ColumnSize="ColumnSize.Is12">
+        <Alert Visible Color="Color.Success">
+          <AlertMessage>Prognosis for <i>'@execution.PrognosisVariable'</i> -> </AlertMessage>
+          <AlertDescription>`@execution.Value`
+          </AlertDescription>
+          <CloseButton/>
+        </Alert>
+      </Column>
+    </Row>
+  }
 </Container>
 
 <Modal @ref="configModalRef">
@@ -139,8 +153,55 @@
     </ModalFooter>
   </ModalContent>
 </Modal>
+
+<Modal @ref="featuresModalRef">
+  <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+     <ModalHeader>
+       <ModalTitle>Dimensionality Reduction</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+        <Container Fluid Margin="Margin.Is4.FromTop">
+          <h3>Correlation Analysis</h3>
+          @if (correlationAnalysis != null &&
+        correlationAnalysis.StrongCorrelations.Count > 0)
+        {
+          <Alert Color="Color.Warning" Visible>
+            <AlertMessage>Strong correlations were found</AlertMessage>
+            <AlertDescription>
+              <ul>
+                @foreach (var item in
+                correlationAnalysis.StrongCorrelations)
+                {
+                  <li>@item[0] - @item[1]</li>
+                }
+              </ul>
+            </AlertDescription>
+          </Alert>
+        }
+        else
+        {
+          <Alert Color="Color.Success" Visible>
+            <AlertMessage>No strong correlations were found</AlertMessage>
+            <AlertDescription>
+              You can continue!
+            </AlertDescription>
+          </Alert>
+        }
+        <Row>
+          <img src="@mapUrl" alt="Loading..." class="img-fluid">
+        </Row>
+      </Container>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Danger" Clicked="@HideFeaturesModal">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
 @code {
   private Modal configModalRef = new();
+  private Modal featuresModalRef = new();
   private List<FileModel> uploadedFiles = new();
   private PrognosisSettingsData settings = new();
   private int selectedFileId;
@@ -150,6 +211,9 @@
   private bool containsHeaders = true;
   private bool showingInfo = false;
   private Dictionary<string, float> testData = new();
+  private PrognosisExecutionResponse execution = null;
+  private CorrelationAnalysisResponse correlationAnalysis = null;
+  private string mapUrl = "";
 
   protected override async Task OnInitializedAsync()
   {
@@ -171,6 +235,7 @@
     try
     {
       settings = await PrognosisServ.GetSettingsData(selectedFileId);
+      settings.TestSize *= 100f;
     }
     catch (HttpRequestException)
     {
@@ -249,6 +314,9 @@
     try
     {
       somethingWentWrong = false;
+      this.correlationAnalysis = await
+      PrognosisServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+      this.mapUrl = PrognosisServ.GetImageUrl(this.correlationAnalysis.MapFileName);
     }
     catch (HttpRequestException ex)
     {
@@ -264,6 +332,8 @@
     settings.PredictorVariables = predictorHeaders
     .Where<HeaderSelection>(h => h.IsSelected)
     .Select<HeaderSelection, object>(h => h.Header).ToList();
+    
+    settings.TestSize /= 100f;
 
     await PrognosisServ.SaveSettingsData(settings);
     await GetSettings();
@@ -284,8 +354,8 @@
       else
       {
         p.IsSelected = false;
-        if (settings.PrognosisVariable != null
-  && settings.PrognosisVariable.ToString().Equals(headerName))
+        if (settings.PrognosisVariable != null &&
+          settings.PrognosisVariable.ToString().Equals(headerName))
         {
           settings.PrognosisVariable = headerName;
         }
@@ -297,7 +367,6 @@
     .Select(h => h.Header.ToString())
     .ToList();
 
-    Console.WriteLine(prognosisHeaders.Count);
     await configModalRef.Show();
     StateHasChanged();
   }
@@ -307,9 +376,18 @@
     configModalRef.Hide();
   }
 
-  private Task SendRegisterData()
+  private async Task SendRegisterData()
   {
-    Console.WriteLine("Not implmeneted");
-    return Task.CompletedTask;
+    execution = await PrognosisServ.GetPrognosisExecutionResponse(selectedFileId, testData);
+  }
+
+  private void ShowFeaturesModal()
+  {
+    featuresModalRef.Show();
+  }
+
+  private void HideFeaturesModal()
+  {
+    featuresModalRef.Hide();
   }
 }

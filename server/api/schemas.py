@@ -110,4 +110,5 @@ class RegressionExecResponse(BaseModel):
   probability_1: float
 
 class PrognosisExecResponse(BaseModel):
+  prognosis_variable: str
   value: float

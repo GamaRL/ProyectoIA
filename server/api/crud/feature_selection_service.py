@@ -9,10 +9,9 @@ from sqlalchemy.orm import Session
 
 from .file_service import get_file_by_id, get_file_headers
 from ..schemas import CorrelationAnalysis
-from ..models import StandarizationMethod
 from .helpers import __get_file_path__
 
-def get_correlation_matrix(db: Session, file_id: int, contains_headers: bool, standarization: StandarizationMethod):
+def get_correlation_matrix(db: Session, file_id: int, contains_headers: bool):
   columns: list[str] = get_file_headers(db, file_id, contains_headers)
 
   file = get_file_by_id(db, file_id)

@@ -48,7 +48,7 @@
     <Row Margin="Margin.Is2.FromTop">
       <Column ColumnSize="ColumnSize.Is12">
         <Alert Visible Color="Color.Success">
-          <AlertMessage>Prognosis for <i>'@execution.PrognosisVariable'</i> -> </AlertMessage>
+          <AlertMessage>Label for <i>'@execution.PrognosisVariable'</i> -> </AlertMessage>
           <AlertDescription>`@execution.Value`
           </AlertDescription>
           <CloseButton/>
@@ -78,7 +78,7 @@
          <Row Margin="Margin.Is4.FromTop">
            @foreach (var item in predictorHeaders)
           {
-            <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+            <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
               <Check TValue="bool" Checked="@item.IsSelected"
                 CheckedChanged="(value) => OnCheckedChanged(item, value)">
                 @item.Header</Check>
@@ -94,7 +94,7 @@
             {
               @foreach (var item in prognosisHeaders)
               {
-                <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+                <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
                   <Radio Value="@item">@item</Radio>
                 </Column>
               }

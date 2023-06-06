@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from ..models import RegressionSettings
 from ..schemas import File, RegressionExecResponse, RegressionSettingsData, RegressionInfoResponse
 from .file_service import get_file_by_id, __get_file_path__
-from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_unique_columns__
+from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_multiple_columns__
 
 def __create_roc_image__(file: File, classifier, x_validation, y_validation):
   RocCurveDisplay.from_estimator(classifier, x_validation, y_validation, name=file.name)
@@ -108,7 +108,7 @@ def get_valid_class_variables(db: Session, file_id: int):
   path = __get_file_path__(file)
   data = pd.read_csv(path, header=None if not True else 0)
 
-  return __filter_unique_columns__(data, 2)
+  return __filter_multiple_columns__(data, 2)
 
 def get_predict_info(db: Session, file_id: int):
 
@@ -152,8 +152,6 @@ def get_prediction(db: Session, file_id: int, row_data = dict[str, float]):
   x_data = pd.DataFrame(row_data, index=[0]).to_numpy()
   y_classified = classifier.predict(x_data)
   probability = classifier.predict_proba(x_data)
-
-  print(y_classified[0])
 
   return RegressionExecResponse(
     label=str(y_classified[0]),

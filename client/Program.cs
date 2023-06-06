@@ -33,6 +33,9 @@ builder.Services
   .AddSingleton<IPrognosisService, PrognosisService>();
 
 builder.Services
+  .AddSingleton<IClassificationService, ClassificationService>();
+
+builder.Services
   .AddBlazorise(options => {
     options.Immediate = true;
   })

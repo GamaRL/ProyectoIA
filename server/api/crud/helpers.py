@@ -27,9 +27,9 @@ def __validate_numeric_columns__(data: pd.DataFrame):
       return False
   return True
 
-def __filter_unique_columns__(data: pd.DataFrame, n: int):
+def __filter_multiple_columns__(data: pd.DataFrame, n: int = 2):
   cols = []
   for col in data.columns.to_list():
-    if data[[col]].nunique().to_list()[0] == n:
+    if data[[col]].nunique().to_list()[0] < n and data[[col]].nunique().to_list()[0] > 1:
       cols.append(col)
   return cols

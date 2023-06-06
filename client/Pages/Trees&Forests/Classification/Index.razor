@@ -1,119 +1,444 @@
 @page "/algorithms/classification"
 
+@using System.Collections.Generic;
+
 @inject IUploadFileService UploadFileServ;
+@inject IClassificationService ClassificationServ;
 
 <Container Fluid Margin="Margin.Is5.FromBottom">
-    <h1>Prognosis</h1>
-    <Row>
-       <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
-          <Div>
-             <Field>
-                <Select TValue="int"
-                   SelectedValueChanged="OnSelectedFileChanged">
-                   @foreach (var file in uploadedFiles)
-                  {
-                     <SelectItem Value="@file.Id">@file.Id - @file.Name
-                     </SelectItem>
-                  }
-               </Select>
-            </Field>
-         </Div>
+   <Row Margin="Margin.Is4.FromBottom">
+      <Column ColumnSize="ColumnSize.Is12">
+         <h1>Classification</h1>
       </Column>
-      <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
+   </Row>
+  <Row>
+      <Column ColumnSize="ColumnSize.Is6.OnDesktop.Is12">
+         <Div>
+            <Field>
+               <Select TValue="int" SelectedValueChanged="OnSelectedFileChanged">
+               @foreach (var file in uploadedFiles)
+               {
+                  <SelectItem Value="@file.Id">@file.Id - @file.Name</SelectItem>
+               }
+            </Select>
+         </Field>
+      </Div>
+    </Column>
+    <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
          <Buttons>
-            @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary"
-               Size="Size.Small" Disabled="somethingWentWrong">Get
-               Clusters</Button> *@
-            @* <Button Clicked="@ShowModal" Color="Color.Info" Size="Size.Small"
-            Disabled="somethingWentWrong">Dimensions</Button> *@
+            <Button Clicked="@ShowFeaturesModal" Color="Color.Info" Size="Size.Small"
+               Disabled="somethingWentWrong">Dimensions</Button>
+            <Button Clicked="@ShowConfigModal" Color="Color.Warning" Size="Size.Small"
+               Disabled="somethingWentWrong">Settings</Button>
          </Buttons>
+    </Column>
+  </Row>
+  <Row>
+    @foreach (var key in testData.Keys)
+    {
+      <Column ColumnSize="ColumnSize.Is4">
+        <Label>@key</Label>
+        <NumericPicker TValue="float" @bind-Value="@testData[key]" />
       </Column>
-   </Row>
-   <Row Margin="Margin.Is4.FromTop">
-      @foreach (var item in headers)
-      {
-         <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
-            <Check TValue="bool" Checked="@item.IsSelected"
-               CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header
-            </Check>
-         </Column>
-      }
-   </Row>
-   <Divider DividerType="DividerType.Dotted" />
+    }
+  </Row>
+  <Row Margin="Margin.Is2.FromTop">
+    <Column ColumnSize="ColumnSize.Is4">
+      <Button Color="Color.Success" Clicked="@SendRegisterData">Send Data</Button>
+    </Column>
+  </Row>
+  @if(execution != null)
+  {
+    <Row Margin="Margin.Is2.FromTop">
+      <Column ColumnSize="ColumnSize.Is12">
+        <Alert Visible Color="Color.Success">
+          <AlertMessage>Classification for <i>'@execution.ClassVariable'</i> -> </AlertMessage>
+          <AlertDescription>`@execution.Label`
+          </AlertDescription>
+          <CloseButton/>
+        </Alert>
+      </Column>
+    </Row>
+  }
 </Container>
 
+<Modal @ref="configModalRef">
+  <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+     <ModalHeader>
+       <ModalTitle>Training Parameters</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+       <Container>
+         <h2>Predictor variables</h2>
+         <Row>
+           <Column>
+             <Check TValue="bool" Checked="@containsHeaders"
+               CheckedChanged="@OnContainsHeadersChanged">
+               Use first row as columns' name?
+             </Check>
+           </Column>
+         </Row>
+         <Row Margin="Margin.Is4.FromTop">
+           @foreach (var item in predictorHeaders)
+          {
+            <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
+              <Check TValue="bool" Checked="@item.IsSelected"
+                CheckedChanged="(value) => OnCheckedChanged(item, value)">
+                @item.Header</Check>
+            </Column>
+          }
+        </Row>
+        <Divider DividerType="DividerType.Dotted" />
+        <h2>Class variable</h2>
+        <RadioGroup TValue="string" Name="classHeaders"
+          @bind-CheckedValue="settings.ClassVariable">
+          <Row Margin="Margin.Is4.FromTop">
+            @if (classHeaders.Count > 0)
+            {
+              @foreach (var item in classHeaders)
+              {
+                <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
+                  <Radio Value="@item">@item</Radio>
+                </Column>
+              }
+            }
+            else
+            {
+              <Column ColumnSize="ColumnSize.Is12.OnDesktop.Is12">
+                <Alert Color="Color.Warning" Visible>
+                <AlertMessage>Warning</AlertMessage>
+                  <AlertDescription>You must select a class variable
+                  </AlertDescription>
+                </Alert>
+              </Column>
+            }
+          </Row>
+        </RadioGroup>
+        <Divider DividerType="DividerType.Dotted" />
+        <h2>Additional Options</h2>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column>
+            <Label>Shuffle</Label>
+            <RadioGroup TValue="bool" Name="shuffle"
+            @bind-CheckedValue="@settings.Shuffle">
+              <Radio Value="true">Yes</Radio>
+              <Radio Value="false">No</Radio>
+            </RadioGroup>
+          </Column>
+        </Row>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column>
+            <Label>Test Size (@settings.TestSize %)</Label>
+            <Field>
+              <Slider @bind-Value="@settings.TestSize" Step="1" TValue="float"
+                Min="0" Max="100" />
+            </Field>
+          </Column>
+        </Row>
+        <Divider DividerType="DividerType.Dashed"/>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column ColumnSize="ColumnSize.Is12">
+            <Check TValue="bool" @bind-Checked="@settings.UseForest">
+              Use Forest?
+            </Check>
+          </Column>
+          @if(@settings.UseForest)
+          {
+            <Column ColumnSize="ColumnSize.Is12">
+              <Label>N. Estimators</Label>
+              <NumericPicker TValue="int" @bind-Value="@settings.NEstimators" />
+            </Column>
+          }
+        </Row>
+        <Divider DividerType="DividerType.Dashed"/>
+        <Row>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Max. Depth</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MaxDepth" />
+          </Column>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Min. Samples Split</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MinSamplesSplit" />
+          </Column>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Min. Samples Leaf</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MinSamplesLeaf" />
+          </Column>
+        </Row>
+        @if (showingInfo && infoResponse != null)
+        {
+          <Divider DividerType="DividerType.Dotted" />
+          <Row>
+            <Column ColumnSize="ColumnSize.Is12">
+              <h2>Information</h2>
+              <ul>
+                <li><b>Criterion:</b> @infoResponse.Criterio</li>
+                <li>
+                  <b>Importance:</b>
+                  <ul>
+                    @foreach (var variable in infoResponse.Importance.Keys)
+                    {
+                      <li><b>@variable</b>: @infoResponse.Importance[variable]</li>
+                    }
+                  </ul>
+                </li>
+                <li><b>MAE:</b> @infoResponse.MeanAbsoluteError</li>
+                <li><b>MSE:</b> @infoResponse.MeanSquaredError</li>
+                <li><b>RMSE:</b> @infoResponse.RootMeanSquaredError</li>
+                <li><b>Score:</b> @infoResponse.Score</li>
+              </ul>
+            </Column>
+          </Row>
+        }
+      </Container>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Secondary" Clicked="@SaveConfig">Train model</Button>
+      <Button Color="Color.Info" Clicked="@GetTrainInfo">Info</Button>
+      <Button Color="Color.Danger" Clicked="@HideConfigModal">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
+<Modal @ref="featuresModalRef">
+  <ModalContent Centered Scrollable Size="ModalSize.ExtraLarge">
+     <ModalHeader>
+       <ModalTitle>Dimensionality Reduction</ModalTitle>
+       <CloseButton />
+     </ModalHeader>
+     <ModalBody>
+        <Container Fluid Margin="Margin.Is4.FromTop">
+          <h3>Correlation Analysis</h3>
+          @if (correlationAnalysis != null &&
+        correlationAnalysis.StrongCorrelations.Count > 0)
+        {
+          <Alert Color="Color.Warning" Visible>
+            <AlertMessage>Strong correlations were found</AlertMessage>
+            <AlertDescription>
+              <ul>
+                @foreach (var item in
+                correlationAnalysis.StrongCorrelations)
+                {
+                  <li>@item[0] - @item[1]</li>
+                }
+              </ul>
+            </AlertDescription>
+          </Alert>
+        }
+        else
+        {
+          <Alert Color="Color.Success" Visible>
+            <AlertMessage>No strong correlations were found</AlertMessage>
+            <AlertDescription>
+              You can continue!
+            </AlertDescription>
+          </Alert>
+        }
+        <Row>
+          <img src="@mapUrl" alt="Loading..." class="img-fluid">
+        </Row>
+      </Container>
+    </ModalBody>
+    <ModalFooter>
+      <Button Color="Color.Danger" Clicked="@HideFeaturesModal">Close</Button>
+    </ModalFooter>
+  </ModalContent>
+</Modal>
+
 @code {
-   private List<FileModel> uploadedFiles = new();
-   private int selectedFileId;
-   private List<HeaderSelection> headers = new();
-   private bool somethingWentWrong = false;
-   private bool containsHeaders = true;
+  private Modal configModalRef = new();
+  private Modal featuresModalRef = new();
+  private List<FileModel> uploadedFiles = new();
+  private ClassificationSettingsData settings = new();
+  private int selectedFileId;
+  private List<HeaderSelection> predictorHeaders = new();
+  private bool somethingWentWrong = false;
+  private bool containsHeaders = true;
+  private bool showingInfo = false;
+  private Dictionary<string, float> testData = new();
+  private ClassificationExecutionResponse execution = null;
+  private CorrelationAnalysisResponse correlationAnalysis = null;
+  private string mapUrl = "";
+  private PrognosisInfoResponse infoResponse = null;
+  private List<string> classHeaders = new();
 
-   protected override async Task OnInitializedAsync()
-   {
-      await base.OnInitializedAsync();
+  protected override async Task OnInitializedAsync()
+  {
+    await base.OnInitializedAsync();
 
-      this.uploadedFiles.AddRange(await
-      UploadFileServ.GetFiles(AlgorithmType.CLASSIFICATION));
-      selectedFileId = this.uploadedFiles.First().Id;
+    this.uploadedFiles.AddRange(await
+    UploadFileServ.GetFiles(AlgorithmType.CLASSIFICATION));
+    selectedFileId = this.uploadedFiles.First().Id;
 
-      Console.WriteLine(selectedFileId);
-      await GetHeaders();
-      await OnUpdateParams();
+    await GetHeaders();
+    await GetSettings();
+    await OnUpdateParams();
 
-      StateHasChanged();
-   }
+    StateHasChanged();
+  }
 
-   public async Task GetHeaders()
-   {
-      var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
-      AlgorithmType.CLASSIFICATION);
+  private async Task GetSettings()
+  {
+    try
+    {
+      settings = await ClassificationServ.GetSettingsData(selectedFileId);
+      settings.TestSize *= 100f;
+    }
+    catch (HttpRequestException)
+    {
+      settings = new();
+      settings.Id = -1;
+      settings.FileId = selectedFileId;
+      settings.ContainsHeaders = true;
+      settings.PredictorVariables = new();
+      settings.ClassVariable = null;
+      settings.TestSize = 20f;
+      settings.Shuffle = true;
+    }
 
-      headers.Clear();
-      foreach (var header in data)
-         headers.Add(new HeaderSelection(header));
-   }
+    testData.Clear();
+    foreach (var variable in settings.PredictorVariables)
+    {
+      testData.Add(variable.ToString(), 0f);
+    }
+    StateHasChanged();
+  }
 
-   public async void OnSelectedFileChanged(int value)
-   {
-      selectedFileId = value;
-      await GetHeaders();
-      await OnUpdateParams();
+  public async Task GetHeaders()
+  {
+    var data = await UploadFileServ.GetFileHeaders(selectedFileId, containsHeaders,
+    AlgorithmType.CLASSIFICATION);
 
-      StateHasChanged();
-   }
+    predictorHeaders.Clear();
+    foreach (var header in data)
+      predictorHeaders.Add(new HeaderSelection(header));
+  }
 
-   public async void OnContainsHeadersChanged(bool value)
-   {
-      containsHeaders = value;
-      headers.Clear();
-      await GetHeaders();
-      await OnUpdateParams();
-      StateHasChanged();
-   }
+  public async void OnSelectedFileChanged(int value)
+  {
+    selectedFileId = value;
+    await GetHeaders();
+    await GetSettings();
+    await OnUpdateParams();
 
-   public async Task OnCheckedChanged(HeaderSelection headerSelection, bool value)
-   {
-      headerSelection.IsSelected = value;
-      await OnUpdateParams();
-      StateHasChanged();
-   }
+    StateHasChanged();
+  }
 
-   public async Task OnUpdateParams()
-   {
-      var cols = headers
-      .Where<HeaderSelection>(h => h.IsSelected)
-      .Select<HeaderSelection, object>(h => h.Header).ToList();
-      try
+  public async void OnContainsHeadersChanged(bool value)
+  {
+    containsHeaders = value;
+    predictorHeaders.Clear();
+    await GetHeaders();
+    await OnUpdateParams();
+    StateHasChanged();
+  }
+
+  public void OnCheckedChanged(HeaderSelection headerSelection, bool value)
+  {
+    headerSelection.IsSelected = value;
+
+    if (headerSelection.IsSelected)
+    {
+      if (headerSelection.Header.Equals(settings.ClassVariable))
       {
-         somethingWentWrong = false;
+        settings.ClassVariable = null;
       }
-      catch (HttpRequestException ex)
+    }
+
+    StateHasChanged();
+  }
+
+  public async Task OnUpdateParams()
+  {
+    var cols = predictorHeaders
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    try
+    {
+      somethingWentWrong = false;
+      this.correlationAnalysis = await
+      ClassificationServ.GetCorrelationAnalysis(selectedFileId, containsHeaders);
+      this.mapUrl = ClassificationServ.GetImageUrl(this.correlationAnalysis.MapFileName);
+    }
+    catch (HttpRequestException ex)
+    {
+      if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
       {
-         if (ex.StatusCode == System.Net.HttpStatusCode.BadRequest)
-         {
-            somethingWentWrong = true;
-         }
+        somethingWentWrong = true;
       }
-   }
+    }
+  }
+
+  private async void SaveConfig()
+  {
+    settings.PredictorVariables = predictorHeaders
+    .Where<HeaderSelection>(h => h.IsSelected)
+    .Select<HeaderSelection, object>(h => h.Header).ToList();
+    
+    settings.TestSize /= 100f;
+
+    await ClassificationServ.SaveSettingsData(settings);
+    await GetSettings();
+  }
+
+  private async void ShowConfigModal()
+  {
+    classHeaders.Clear();
+    classHeaders = (await ClassificationServ.GetValidClassVariables(selectedFileId))
+    .Select(ch => ch.ToString())
+    .ToList();
+
+    var headers = settings.PredictorVariables
+    .Select(p => p.ToString())
+    .ToList();
+    predictorHeaders.ForEach(p =>
+    {
+      string headerName = p.Header.ToString();
+      if (headers.Contains(headerName))
+      {
+        p.IsSelected = true;
+      }
+      else
+      {
+        p.IsSelected = false;
+        if (settings.ClassVariable != null &&
+          settings.ClassVariable.ToString().Equals(headerName))
+        {
+          settings.ClassVariable = headerName;
+        }
+      }
+    });
+
+    await configModalRef.Show();
+    StateHasChanged();
+  }
+
+  private void HideConfigModal()
+  {
+    infoResponse = null;
+    showingInfo = false;
+    configModalRef.Hide();
+  }
+
+  private async Task SendRegisterData()
+  {
+    execution = await ClassificationServ.GetPrognosisExecutionResponse(selectedFileId, testData);
+  }
+
+  private void ShowFeaturesModal()
+  {
+    featuresModalRef.Show();
+  }
+
+  private void HideFeaturesModal()
+  {
+    featuresModalRef.Hide();
+  }
+
+  private async Task GetTrainInfo()
+  {
+    @* infoResponse = await ClassificationServ.GetPrognosisInfo(selectedFileId); *@
+    showingInfo = true;
+  }
 }

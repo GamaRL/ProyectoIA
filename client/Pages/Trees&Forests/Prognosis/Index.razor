@@ -315,6 +315,7 @@
   {
     selectedFileId = value;
     await GetHeaders();
+    await GetSettings();
     await OnUpdateParams();
 
     StateHasChanged();

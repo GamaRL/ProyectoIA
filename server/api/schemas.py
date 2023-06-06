@@ -97,6 +97,23 @@ class PrognosisSettingsData(BaseModel):
   class Config:
     orm_mode = True
 
+class ClassificationSettingsData(BaseModel):
+  id: int|None
+  file_id: int
+  contains_headers: bool
+  predictor_variables: list[str]
+  class_variable: str
+  test_size: float
+  shuffle: bool
+  use_forest: bool
+  n_estimators: int
+  max_depth: int
+  min_samples_split: int
+  min_samples_leaf: int
+
+  class Config:
+    orm_mode = True
+
 class RegressionInfoResponse(BaseModel):
   file_id: int
   accuracy_score: float
@@ -121,3 +138,7 @@ class RegressionExecResponse(BaseModel):
 class PrognosisExecResponse(BaseModel):
   prognosis_variable: str
   value: float
+
+class ClassificationExecResponse(BaseModel):
+  class_variable: str
+  label: str

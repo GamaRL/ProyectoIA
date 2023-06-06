@@ -5,10 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+
 from . import models
-from .schemas import AssociationRuleRow, PrognosisSettingsData, RegressionSettingsData
+from .schemas import AssociationRuleRow, ClassificationSettingsData, PrognosisSettingsData, RegressionSettingsData
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
+from .crud.classification_service import get_class_settings_data_by_file_id, get_classification, get_multiple_class_variables, store_classification_params
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
@@ -336,6 +338,55 @@ async def class_api_get_file(file_id: int, download: bool = False, db: Session =
 @app.get("/4/files/{file_id}/headers")
 async def class_api_get_headers(file_id: int, contains_headers: bool = False, db: Session = Depends(get_db)):
     return get_file_headers(db, file_id, contains_headers)
+
+@app.get("/4/files/{file_id}/settings")
+async def class_api_get_settings(file_id: int, db: Session = Depends(get_db)):
+    settings = get_class_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return settings
+
+@app.post("/4/files/{file_id}/settings")
+async def class_api_post_settings(settings: ClassificationSettingsData, db: Session = Depends(get_db)):
+    return store_classification_params(db, settings)
+
+@app.post("/4/files/{file_id}/classify")
+async def class_api_get_prediction(file_id: int, row_data: dict[str, float], db: Session = Depends(get_db)):
+    settings = get_class_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_classification(db, file_id, row_data)
+
+@app.get("/4/files/{file_id}/dimensionality")
+async def prog_api_get_dimensionality(
+    file_id: int,
+    contains_headers: bool = False,
+    db: Session = Depends(get_db)):
+
+    return get_correlation_matrix(db, file_id, contains_headers)
+
+@app.get("/4/images/{filename}")
+async def prog_api_get_map(
+    filename: str,
+    db: Session = Depends(get_db)):
+        path = os.path.join("/tmp", filename)
+        return FileResponse(path, filename=filename, media_type="img/png")
+
+@app.get("/4/files/{file_id}/info")
+async def prog_api_get_info(file_id: int, db: Session = Depends(get_db)):
+    settings = get_class_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_prognosis_info(db, file_id)
+
+@app.get("/4/files/{file_id}/valid_class")
+async def regr_api_post_settings(file_id: int, db: Session = Depends(get_db)):
+    return get_multiple_class_variables(db, file_id)
 
 # Prognosis endopoints
 @app.post("/5/files/")

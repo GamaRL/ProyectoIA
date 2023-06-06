@@ -4,12 +4,13 @@ import pandas as pd
 from sklearn import model_selection
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report
 
 from sqlalchemy.orm import Session
 
 from .file_service import get_file_by_id
 from .helpers import __get_file_path__
-from ..schemas import ClassificationExecResponse, ClassificationSettingsData
+from ..schemas import ClassificationExecResponse, ClassificationInfoResponse, ClassificationSettingsData
 from ..models import ClassificationSettings
 from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_multiple_columns__
 
@@ -167,10 +168,25 @@ def get_classification_info(db: Session, file_id: int):
   classifier.fit(x_train, y_train.ravel())
   y_classify = classifier.predict(x_validation)
 
+  matrix = pd.crosstab(
+    y_validation.ravel(),
+    y_classify,
+    rownames=["Reality"],
+    colnames=["Classification"]
+  )
+
   importance_values = classifier.feature_importances_.tolist()
   importance = dict(zip(settings.predictor_variables, importance_values))
 
-  return None
+  return ClassificationInfoResponse(
+    file_id=settings.file_id,
+    criterio=classifier.criterion,
+    importance=importance,
+    score=classifier.score(x_validation, y_validation),
+    crosstab=matrix.to_numpy().tolist(),
+    report=classification_report(y_validation, y_classify, output_dict=True)
+  )
+
 
 def get_multiple_class_variables(db: Session, file_id: int):
 

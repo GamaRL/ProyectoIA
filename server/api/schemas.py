@@ -121,6 +121,14 @@ class RegressionInfoResponse(BaseModel):
   crosstab: list[list[float]]
   report: dict
 
+class ClassificationInfoResponse(BaseModel):
+  file_id: int
+  criterio: str
+  importance: dict[str, float]
+  score: float
+  crosstab: list[list[float]]
+  report: dict
+
 class PrognosisInfoResponse(BaseModel):
   file_id: int
   criterio: str

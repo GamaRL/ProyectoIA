@@ -10,7 +10,7 @@ from . import models
 from .schemas import AssociationRuleRow, ClassificationSettingsData, PrognosisSettingsData, RegressionSettingsData
 from .crud.file_service import __get_file_path__, delete_file_by_id, get_file_by_id, get_file_content_by_id, get_file_content_with_headers_by_id, get_file_headers, get_files, save_file
 from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_file, get_rules_from_file, save_rule_from_file
-from .crud.classification_service import get_class_settings_data_by_file_id, get_classification, get_multiple_class_variables, store_classification_params
+from .crud.classification_service import get_class_settings_data_by_file_id, get_classification, get_classification_info, get_multiple_class_variables, store_classification_params
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
@@ -361,7 +361,7 @@ async def class_api_get_prediction(file_id: int, row_data: dict[str, float], db:
     return get_classification(db, file_id, row_data)
 
 @app.get("/4/files/{file_id}/dimensionality")
-async def prog_api_get_dimensionality(
+async def class_api_get_dimensionality(
     file_id: int,
     contains_headers: bool = False,
     db: Session = Depends(get_db)):
@@ -369,20 +369,20 @@ async def prog_api_get_dimensionality(
     return get_correlation_matrix(db, file_id, contains_headers)
 
 @app.get("/4/images/{filename}")
-async def prog_api_get_map(
+async def class_api_get_map(
     filename: str,
     db: Session = Depends(get_db)):
         path = os.path.join("/tmp", filename)
         return FileResponse(path, filename=filename, media_type="img/png")
 
 @app.get("/4/files/{file_id}/info")
-async def prog_api_get_info(file_id: int, db: Session = Depends(get_db)):
+async def class_api_get_info(file_id: int, db: Session = Depends(get_db)):
     settings = get_class_settings_data_by_file_id(db, file_id)
 
     if settings == None:
         raise HTTPException(status_code=404, detail="Unable to find this information")
 
-    return get_prognosis_info(db, file_id)
+    return get_classification_info(db, file_id)
 
 @app.get("/4/files/{file_id}/valid_class")
 async def regr_api_post_settings(file_id: int, db: Session = Depends(get_db)):

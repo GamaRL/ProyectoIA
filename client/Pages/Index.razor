@@ -1,2 +1,11 @@
 @page "/"
 @layout MainLayout
+
+@inject NavigationManager NavManager
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavManager.NavigateTo("/home");
+    }
+}

@@ -104,6 +104,15 @@ class RegressionInfoResponse(BaseModel):
   crosstab: list[list[float]]
   report: dict
 
+class PrognosisInfoResponse(BaseModel):
+  file_id: int
+  criterio: str
+  importance: dict[str, float]
+  mean_absolute_error: float
+  mean_squared_error: float
+  root_mean_squared_error: float
+  score: float
+
 class RegressionExecResponse(BaseModel):
   label: str
   probability_0: float

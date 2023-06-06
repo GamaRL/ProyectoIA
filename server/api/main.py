@@ -12,7 +12,7 @@ from .crud.apriori_service import get_frequency_table_from_file, get_rule_from_f
 from .crud.distances_service import get_distances_from_file_by_id
 from .crud.clustering_service import get_agglomerative_cluster_img, get_agglomerative_clusters, get_partitional_cluster_img, get_partitional_clusters
 from .crud.feature_selection_service import get_correlation_matrix
-from .crud.prognosis_service import get_prog_settings_data_by_file_id, get_prognosis, store_prognosis_params
+from .crud.prognosis_service import get_prog_settings_data_by_file_id, get_prognosis, get_prognosis_info, store_prognosis_params
 from .crud.regression_service import get_predict_info, get_prediction, get_regr_settings_data_by_file_id, get_valid_class_variables, store_regression_params
 
 from .database import SessionLocal, engine
@@ -385,7 +385,7 @@ async def prog_api_get_prediction(file_id: int, row_data: dict[str, float], db: 
     return get_prognosis(db, file_id, row_data)
 
 @app.get("/5/files/{file_id}/dimensionality")
-async def regr_api_get_dimensionality(
+async def prog_api_get_dimensionality(
     file_id: int,
     contains_headers: bool = False,
     db: Session = Depends(get_db)):
@@ -393,8 +393,17 @@ async def regr_api_get_dimensionality(
     return get_correlation_matrix(db, file_id, contains_headers)
 
 @app.get("/5/images/{filename}")
-async def clust_api_get_map(
+async def prog_api_get_map(
     filename: str,
     db: Session = Depends(get_db)):
         path = os.path.join("/tmp", filename)
         return FileResponse(path, filename=filename, media_type="img/png")
+
+@app.get("/5/files/{file_id}/info")
+async def prog_api_get_info(file_id: int, db: Session = Depends(get_db)):
+    settings = get_prog_settings_data_by_file_id(db, file_id)
+
+    if settings == None:
+        raise HTTPException(status_code=404, detail="Unable to find this information")
+
+    return get_prognosis_info(db, file_id)

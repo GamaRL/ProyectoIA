@@ -44,4 +44,11 @@ public class PrognosisService : IPrognosisService
     baseAddress = baseAddress.Substring(0, baseAddress.Length - 1);
     return Path.Join(baseAddress, uriBuilder.Path);
   }
+
+  public async Task<PrognosisInfoResponse> GetPrognosisInfo(int fileId)
+  {
+    UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.PROGNOSIS}/files/{fileId}/info"));
+
+    return await this._http.GetFromJsonAsync<PrognosisInfoResponse>(uriBuilder.Uri.ToString());
+  }
 }

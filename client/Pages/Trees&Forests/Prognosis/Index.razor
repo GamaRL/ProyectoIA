@@ -22,9 +22,6 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        @* <Button Clicked="@GetAgglomerativeClusters" Color="Color.Primary"
-        Size="Size.Small" Disabled="somethingWentWrong">Get
-        Clusters</Button> *@
         <Button Clicked="@ShowFeaturesModal" Color="Color.Info" Size="Size.Small"
           Disabled="somethingWentWrong">Dimensions</Button>
         <Button Clicked="@ShowConfigModal" Color="Color.Warning" Size="Size.Small"
@@ -135,12 +132,58 @@
             </Field>
           </Column>
         </Row>
-        @if (showingInfo)
+        <Divider DividerType="DividerType.Dashed"/>
+        <Row Margin="Margin.Is4.FromTop">
+          <Column ColumnSize="ColumnSize.Is12">
+            <Check TValue="bool" @bind-Checked="@settings.UseForest">
+              Use Forest?
+            </Check>
+          </Column>
+          @if(@settings.UseForest)
+          {
+            <Column ColumnSize="ColumnSize.Is12">
+              <Label>N. Estimators</Label>
+              <NumericPicker TValue="int" @bind-Value="@settings.NEstimators" />
+            </Column>
+          }
+        </Row>
+        <Divider DividerType="DividerType.Dashed"/>
+        <Row>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Max. Depth</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MaxDepth" />
+          </Column>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Min. Samples Split</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MinSamplesSplit" />
+          </Column>
+          <Column ColumnSize="ColumnSize.Is12">
+            <Label>Min. Samples Leaf</Label>
+            <NumericPicker TValue="int" @bind-Value="@settings.MinSamplesLeaf" />
+          </Column>
+        </Row>
+        @if (showingInfo && infoResponse != null)
         {
           <Divider DividerType="DividerType.Dotted" />
           <Row>
             <Column ColumnSize="ColumnSize.Is12">
-              @* <b>Accuracy score:</b> @infoResponse.AccuracyScore *@
+              <h2>Information</h2>
+              <ul>
+                <li><b>Criterion:</b> @infoResponse.Criterio</li>
+                <li>
+                  <b>Importance:</b>
+                  <ul>
+                    @foreach (var variable in infoResponse.Importance.Keys)
+                    {
+                      <li><b>@variable</b>: @infoResponse.Importance[variable]</li>
+                    }
+                  </ul>
+                </li>
+                <li><b>MAE:</b> @infoResponse.MeanAbsoluteError</li>
+                <li><b>MSE:</b> @infoResponse.MeanSquaredError</li>
+                <li><b>RMSE:</b> @infoResponse.RootMeanSquaredError</li>
+                <li><b>Score:</b> @infoResponse.Score</li>
+              </ul>
             </Column>
           </Row>
         }
@@ -148,7 +191,7 @@
     </ModalBody>
     <ModalFooter>
       <Button Color="Color.Secondary" Clicked="@SaveConfig">Train model</Button>
-      @* <Button Color="Color.Info" Clicked="@GetTrainInfo">Info</Button> *@
+      <Button Color="Color.Info" Clicked="@GetTrainInfo">Info</Button>
       <Button Color="Color.Danger" Clicked="@HideConfigModal">Close</Button>
     </ModalFooter>
   </ModalContent>
@@ -214,6 +257,7 @@
   private PrognosisExecutionResponse execution = null;
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private string mapUrl = "";
+  private PrognosisInfoResponse infoResponse = null;
 
   protected override async Task OnInitializedAsync()
   {
@@ -373,6 +417,8 @@
 
   private void HideConfigModal()
   {
+    infoResponse = null;
+    showingInfo = false;
     configModalRef.Hide();
   }
 
@@ -389,5 +435,11 @@
   private void HideFeaturesModal()
   {
     featuresModalRef.Hide();
+  }
+
+  private async Task GetTrainInfo()
+  {
+    infoResponse = await PrognosisServ.GetPrognosisInfo(selectedFileId);
+    showingInfo = true;
   }
 }

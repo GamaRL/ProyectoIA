@@ -3,13 +3,14 @@ import numpy as np
 import pandas as pd
 from sklearn import model_selection
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.tree import DecisionTreeRegressor
 
 from sqlalchemy.orm import Session
 
 from ..crud.file_service import get_file_by_id
 from ..crud.helpers import __get_file_path__
-from ..schemas import PrognosisExecResponse, PrognosisSettingsData
+from ..schemas import PrognosisExecResponse, PrognosisInfoResponse, PrognosisSettingsData
 from ..models import PrognosisSettings
 
 def store_prognosis_params(db: Session, settings: PrognosisSettingsData):
@@ -138,4 +139,43 @@ def get_prognosis(db: Session, file_id: int, row_data = dict[str, float]):
   return PrognosisExecResponse(
     value=y_classified[0],
     prognosis_variable=str(settings.prognosis_variable)
+  )
+
+def get_prognosis_info(db: Session, file_id: int):
+
+  file = get_file_by_id(db, file_id)
+  settings = get_prog_settings_by_file_id(db, file_id)
+
+  x_train, x_validation, y_train, y_validation = __load_train_data__(settings)
+
+  if settings.use_forest:
+    prognosticator = RandomForestRegressor(
+      n_estimators=settings.n_estimators,
+      max_depth=settings.max_depth,
+      min_samples_leaf=settings.min_samples_leaf,
+      min_samples_split=settings.min_samples_split,
+      random_state=0
+    )
+  else:
+    prognosticator = DecisionTreeRegressor(
+      max_depth=settings.max_depth,
+      min_samples_leaf=settings.min_samples_leaf,
+      min_samples_split=settings.min_samples_split,
+      random_state=0
+    )
+
+  prognosticator.fit(x_train, y_train.ravel())
+  y_prognosis = prognosticator.predict(x_validation)
+
+  importance_values = prognosticator.feature_importances_.tolist()
+  importance = dict(zip(settings.predictor_variables, importance_values))
+
+  return PrognosisInfoResponse(
+    file_id=settings.file_id,
+    criterio=prognosticator.criterion,
+    importance=importance,
+    mean_absolute_error = mean_absolute_error(y_validation, y_prognosis),
+    mean_squared_error = mean_squared_error(y_validation, y_prognosis),
+    root_mean_squared_error = mean_squared_error(y_validation, y_prognosis, squared=False),
+    score = r2_score(y_validation, y_prognosis)
   )

@@ -38,7 +38,7 @@
   <Row Margin="Margin.Is4.FromTop">
     @foreach (var item in headers)
     {
-      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+      <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
         <Check TValue="bool" Checked="@item.IsSelected" CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header</Check>
       </Column>
     }
@@ -115,14 +115,39 @@
   <Divider DividerType="DividerType.Dotted" />
   @if (response != null)
   {
-    <h2>Distances Matrix</h2>
+    <Heading Size="HeadingSize.Is3">Distances Matrix</Heading>
 
     <Row Margin="Margin.Is4.FromTop">
       <Column ColumnSize="ColumnSize.Is12" Margin="Margin.Is0">
         <LargeMatrixVisualization Matrix="response.Matrix" />
       </Column>
     </Row>
+    
+    <Divider DividerType="DividerType.Dashed"/>
+    <Heading Size="HeadingSize.Is3">Compare two items</Heading>
     <Row>
+      <Column ColumnSize="ColumnSize.Is6">
+        <Label>First item</Label>
+        <NumericPicker TValue="int" Value="@firstItemId" Min="0" Max="@response.Matrix.Count" ValueChanged="@OnFirstItemsChanged"></NumericPicker>
+      </Column>
+      <Column ColumnSize="ColumnSize.Is6">
+        <Label>Second item</Label>
+        <NumericPicker TValue="int" Value="@secondItemId" Min="0" Max="@response.Matrix.Count" ValueChanged="@OnSecondItemsChanged"></NumericPicker>
+      </Column>
+    </Row>
+    @if(itemsDistance >= 0.0f)
+    {
+      <Row Margin="Margin.Is2.FromTop">
+        <Column ColumnSize="ColumnSize.Is12">
+          <Alert Visible Color="Color.Success">
+            <AlertMessage>Distance between <i>`@firstItemId`</i> and <i>`@secondItemId`</i> -> </AlertMessage>
+            <AlertDescription>`@itemsDistance
+            </AlertDescription>
+          </Alert>
+        </Column>
+      </Row>
+    }
+    <Row Margin="Margin.Is3.FromTop">
       <Column ColumnSize="ColumnSize.Is12">
         <Button Color="Color.Success" Clicked="@ExportData">
           <BarIcon IconName="IconName.Download" />
@@ -154,6 +179,9 @@
   private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
   private DistanceMatrixResponse response = null;
   private bool somethingWentWrong = false;
+  private int firstItemId = 0;
+  private int secondItemId = 1;
+  private float itemsDistance = -1.0f;
 
   protected override async Task OnInitializedAsync()
   {
@@ -173,6 +201,7 @@
     var cols = headers
     .Where<HeaderSelection>(h => h.IsSelected)
     .Select<HeaderSelection, object>(h => h.Header).ToList();
+    response = null;
     response = await DistancesServ.GetDistanceMatrix(selectedFileId, containsHeaders, cols, distanceMetric, standarizationMethod);
     StateHasChanged();
   }
@@ -256,5 +285,37 @@
       .Select<HeaderSelection, object>(h => h.Header).ToList();
     string path = DistancesServ.GetDistancesRequestUrl(selectedFileId, true, containsHeaders, cols, distanceMetric, standarizationMethod);
     NavigationMan.NavigateTo(path);
+  }
+
+  public void OnFirstItemsChanged(int value)
+  {
+    var matrix = response.Matrix;
+
+    if (matrix.Count > value && matrix.Count > value)
+    {
+      firstItemId = value;
+      itemsDistance = matrix[firstItemId][secondItemId];
+    }
+    else
+    {
+      itemsDistance = -1.0f;
+    }
+    StateHasChanged();
+  }
+
+  public void OnSecondItemsChanged(int value)
+  {
+    var matrix = response.Matrix;
+
+    if (matrix.Count > value && matrix.Count > value)
+    {
+      secondItemId = value;
+      itemsDistance = matrix[firstItemId][secondItemId];
+    }
+    else
+    {
+      itemsDistance = -1.0f;
+    }
+    StateHasChanged();
   }
 }

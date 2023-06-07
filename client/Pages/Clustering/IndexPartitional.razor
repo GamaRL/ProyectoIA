@@ -43,7 +43,7 @@
   <Row Margin="Margin.Is4.FromTop">
     @foreach (var item in headers)
     {
-      <Column ColumnSize="ColumnSize.Is2.OnDesktop.Is12">
+      <Column ColumnSize="ColumnSize.Is4.OnDesktop.Is12">
         <Check TValue="bool" Checked="@item.IsSelected"
           CheckedChanged="(value) => OnCheckedChanged(item, value)">@item.Header
         </Check>

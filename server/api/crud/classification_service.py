@@ -1,18 +1,21 @@
 import os
+import secrets
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn import model_selection
+from sklearn.calibration import label_binarize
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import classification_report
+from sklearn.metrics import RocCurveDisplay, auc, classification_report, roc_curve
 
 from sqlalchemy.orm import Session
 
 from .file_service import get_file_by_id
 from .helpers import __get_file_path__
-from ..schemas import ClassificationExecResponse, ClassificationInfoResponse, ClassificationSettingsData
+from ..schemas import ClassificationExecResponse, ClassificationInfoResponse, ClassificationSettingsData, File
 from ..models import ClassificationSettings
-from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_multiple_columns__
+from .helpers import __get_file_path__, __normalize_matrix__, __scale_matrix__, __filter_multiple_columns__, __create_roc_image__
 
 def store_classification_params(db: Session, settings: ClassificationSettingsData):
   file = get_file_by_id(db, file_id = settings.file_id)
@@ -143,6 +146,37 @@ def get_classification(db: Session, file_id: int, row_data = dict[str, float]):
     class_variable=str(settings.class_variable)
   )
 
+def __create_roc_image__(settings, classifier, x_validation, y_validation):
+  classes = pd.DataFrame(y_validation)[0].unique().tolist()
+
+  y_score = classifier.predict_proba(x_validation)
+  y_test_bin = label_binarize(y_validation, classes=classes)
+
+  colors = ['blue', 'orange', 'lime', 'pink', 'cyan']
+
+  plt.figure(figsize=[12, 6])
+  if len(classes) > 2:
+    for i in range(len(classes)):
+      fpr, tpr, _ = roc_curve(y_test_bin[:, i], y_score[:, i])
+      plt.plot(fpr, tpr, color=colors[i], lw=1)
+  else:
+    fpr, tpr, _ = roc_curve(y_test_bin[:, 0], y_score[:, 0])
+    plt.plot(fpr, tpr, color='blue', lw=1)
+
+  plt.plot([0, 1], [0, 1], color='lightgray', lw=1, linestyle='--')
+  plt.xlim([0.0, 1.0])
+  plt.ylim([0.0, 1.05])
+  plt.xlabel('False Positive Rate')
+  plt.ylabel('True Positive Rate')
+  plt.title('Score')
+
+  filename = secrets.token_urlsafe(5) + ".png"
+  image_path =  os.path.join("/tmp", filename)
+
+  plt.savefig(image_path)
+
+  return filename
+
 def get_classification_info(db: Session, file_id: int):
 
   settings = get_classification_settings_by_file_id(db, file_id)
@@ -178,13 +212,24 @@ def get_classification_info(db: Session, file_id: int):
   importance_values = classifier.feature_importances_.tolist()
   importance = dict(zip(settings.predictor_variables, importance_values))
 
+  report = classification_report(y_validation, y_classify, output_dict=True)
+  report.pop("accuracy")
+
+  roc_image_file = __create_roc_image__(settings, classifier, x_validation, y_validation)
+
+  crosstab = dict()
+
+  for k in matrix.columns.to_list():
+    crosstab[k] = matrix[k].tolist()
+  
   return ClassificationInfoResponse(
     file_id=settings.file_id,
     criterio=classifier.criterion,
     importance=importance,
     score=classifier.score(x_validation, y_validation),
-    crosstab=matrix.to_numpy().tolist(),
-    report=classification_report(y_validation, y_classify, output_dict=True)
+    crosstab=crosstab,
+    report=report,
+    roc_image_file=roc_image_file
   )
 
 

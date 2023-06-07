@@ -51,4 +51,11 @@ public class ClassificationService : IClassificationService
     var message = await this._http.PostAsJsonAsync<Dictionary<string, float>>(uriBuilder.Uri.ToString(), register);
     return await message.Content.ReadFromJsonAsync<ClassificationExecutionResponse>();
   }
+
+  public async Task<ClassificationInfoResponse> GetClassificationInfo(int fileId)
+  {
+    UriBuilder uriBuilder = new(new Uri(_http.BaseAddress, $"/{(int)AlgorithmType.CLASSIFICATION}/files/{fileId}/info"));
+
+    return await this._http.GetFromJsonAsync<ClassificationInfoResponse>(uriBuilder.Uri.ToString());
+  }
 }

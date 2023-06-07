@@ -5,6 +5,6 @@ public interface IClassificationService
   Task<List<object>> GetValidClassVariables(int fileId);
   Task<ClassificationExecutionResponse> GetPrognosisExecutionResponse(int fileId, Dictionary<string, float> register);
   Task<CorrelationAnalysisResponse> GetCorrelationAnalysis(int fileId, bool containsHeaders);
-  // Task<PrognosisInfoResponse> GetPrognosisInfo(int fileId);
+  Task<ClassificationInfoResponse> GetClassificationInfo(int fileId);
   string GetImageUrl(string resource);
 }

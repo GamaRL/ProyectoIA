@@ -33,3 +33,13 @@ def __filter_multiple_columns__(data: pd.DataFrame, n: int = 2):
     if data[[col]].nunique().to_list()[0] <= n and data[[col]].nunique().to_list()[0] > 1:
       cols.append(col)
   return cols
+
+def __create_roc_image__(file: File, classifier, x_validation, y_validation):
+  RocCurveDisplay.from_estimator(classifier, x_validation, y_validation, name=file.name)
+
+  filename = secrets.token_urlsafe(5) + ".png"
+  image_path =  os.path.join("/tmp", filename)
+
+  plt.savefig(image_path)
+
+  return filename

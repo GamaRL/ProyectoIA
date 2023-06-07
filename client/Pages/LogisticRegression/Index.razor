@@ -23,10 +23,10 @@
     </Column>
     <Column ColumnSize="ColumnSize.Is6.OnTablet.Is12">
       <Buttons>
-        <Button Clicked="@ShowConfigModal" Color="Color.Success"
-          Size="Size.Small" Disabled="somethingWentWrong">Configuration</Button>
-        <Button Clicked="@ShowFeaturesModal" Color="Color.Info"
-          Size="Size.Small" Disabled="somethingWentWrong">Dimensions</Button>
+          <Button Clicked="@ShowFeaturesModal" Color="Color.Info" Size="Size.Small"
+              Disabled="somethingWentWrong">Dimensions</Button>
+          <Button Clicked="@ShowConfigModal" Color="Color.Warning" Size="Size.Small"
+              Disabled="somethingWentWrong">Settings</Button>
       </Buttons>
     </Column>
   </Row>
@@ -142,14 +142,75 @@
             </Field>
           </Column>
         </Row>
-        @if(showingInfo)
+        @if (showingInfo && infoResponse != null)
         {
           <Divider DividerType="DividerType.Dotted" />
           <Row>
             <Column ColumnSize="ColumnSize.Is12">
-              <b>Accuracy score:</b> @infoResponse.AccuracyScore
+              <Jumbotron Background="Background.Light" Margin="Margin.Is4.FromBottom">
+                <Heading Size="HeadingSize.Is3">Information</Heading>
+
+                <Div><b>Accuracy score:</b> @infoResponse.AccuracyScore</Div>
+              </Jumbotron>
             </Column>
           </Row>
+
+          <Heading Size="HeadingSize.Is3">Report</Heading>
+          <Table Bordered Narrow>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>#</TableHeaderCell>
+                <TableHeaderCell>Precision</TableHeaderCell>
+                <TableHeaderCell>Recall</TableHeaderCell>
+                <TableHeaderCell>F1 Score</TableHeaderCell>
+                <TableHeaderCell>Support</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              @foreach (var item in infoResponse.Report.Keys)
+              {
+                <TableRow>
+                  <TableRowHeader>@item</TableRowHeader>
+                  <TableRowCell>@infoResponse.Report[item].Precision</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].Recall</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].F1Score</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].Support</TableRowCell>
+                </TableRow>
+              }
+            </TableBody>
+          </Table>
+
+          <Row Margin="Margin.Is4.FromTop">
+            <Column>
+              <Heading Size="HeadingSize.Is3">ROC</Heading>
+              <img src="@rocUrl" alt="Loading..." class="img-fluid">
+            </Column>
+          </Row>
+
+          <Heading Size="HeadingSize.Is3">Cross Table</Heading>
+          <Table Bordered Striped Narrow>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>&</TableHeaderCell>
+                @foreach (var variable in infoResponse.CrossTab.Keys.Order())
+                {
+                  <TableHeaderCell>@variable</TableHeaderCell>
+                }
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+                @foreach (var row in infoResponse.CrossTab.Keys.Order())
+                {
+                  <TableRow>
+                    <TableRowHeader>@row</TableRowHeader>
+                    @foreach (var col in infoResponse.CrossTab[row])
+                    {
+                      <TableRowCell>@col</TableRowCell>
+                    }
+                  </TableRow>
+                }
+            </TableBody>
+          </Table>
         }
       </Container>
     </ModalBody>
@@ -230,6 +291,7 @@
   private bool shuffle = false;
   private string selectedTab = "corr";
   private string mapUrl = "";
+  private string rocUrl = "";
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private RegressionInfoResponse infoResponse = null;
   private List<FileModel> uploadedFiles = new();
@@ -367,6 +429,7 @@
 
   private async void ShowConfigModal()
   {
+    showingInfo = false;
     classHeaders.Clear();
     classHeaders = (await RegressionServ.GetValidClassVariables(selectedFileId))
     .Select(h => h.ToString()).ToList();
@@ -410,6 +473,8 @@
 
   private void HideConfigModal()
   {
+    infoResponse = null;
+    showingInfo = false;
     configModalRef.Hide();
   }
 
@@ -421,6 +486,7 @@
   private async Task GetTrainInfo()
   {
     infoResponse = await RegressionServ.GetRegressionInfo(selectedFileId);
+    rocUrl = RegressionServ.GetImageUrl(infoResponse.ROCImageFile);
     showingInfo = true;
     StateHasChanged();
   }

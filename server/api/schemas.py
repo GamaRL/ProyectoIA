@@ -118,7 +118,7 @@ class RegressionInfoResponse(BaseModel):
   file_id: int
   accuracy_score: float
   roc_image_file: str
-  crosstab: list[list[float]]
+  crosstab: dict[str, list[int]]
   report: dict
 
 class ClassificationInfoResponse(BaseModel):
@@ -126,8 +126,9 @@ class ClassificationInfoResponse(BaseModel):
   criterio: str
   importance: dict[str, float]
   score: float
-  crosstab: list[list[float]]
+  crosstab: dict[str, list[int]]
   report: dict
+  roc_image_file: str
 
 class PrognosisInfoResponse(BaseModel):
   file_id: int

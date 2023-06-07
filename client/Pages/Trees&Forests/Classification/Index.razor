@@ -171,10 +171,10 @@
           <Divider DividerType="DividerType.Dotted" />
           <Row>
             <Column ColumnSize="ColumnSize.Is12">
-              <h2>Information</h2>
-              <ul>
-                <li><b>Criterion:</b> @infoResponse.Criterio</li>
-                <li>
+              <Jumbotron Background="Background.Light" Margin="Margin.Is4.FromBottom">
+                <Heading Size="HeadingSize.Is3">Information</Heading>
+                <Div><b>Criterion:</b> @infoResponse.Criterio</Div>
+                <Div>
                   <b>Importance:</b>
                   <ul>
                     @foreach (var variable in infoResponse.Importance.Keys)
@@ -182,14 +182,68 @@
                       <li><b>@variable</b>: @infoResponse.Importance[variable]</li>
                     }
                   </ul>
-                </li>
-                <li><b>MAE:</b> @infoResponse.MeanAbsoluteError</li>
-                <li><b>MSE:</b> @infoResponse.MeanSquaredError</li>
-                <li><b>RMSE:</b> @infoResponse.RootMeanSquaredError</li>
-                <li><b>Score:</b> @infoResponse.Score</li>
-              </ul>
+                </Div>
+                <Div><b>Score:</b> @infoResponse.Score</Div>
+              </Jumbotron>
             </Column>
           </Row>
+
+          <Heading Size="HeadingSize.Is3">Report</Heading>
+          <Table Bordered Narrow>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>#</TableHeaderCell>
+                <TableHeaderCell>Precision</TableHeaderCell>
+                <TableHeaderCell>Recall</TableHeaderCell>
+                <TableHeaderCell>F1 Score</TableHeaderCell>
+                <TableHeaderCell>Support</TableHeaderCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              @foreach (var item in infoResponse.Report.Keys)
+              {
+                <TableRow>
+                  <TableRowHeader>@item</TableRowHeader>
+                  <TableRowCell>@infoResponse.Report[item].Precision</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].Recall</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].F1Score</TableRowCell>
+                  <TableRowCell>@infoResponse.Report[item].Support</TableRowCell>
+                </TableRow>
+              }
+            </TableBody>
+          </Table>
+
+          <Row Margin="Margin.Is4.FromTop">
+            <Column>
+              <Heading Size="HeadingSize.Is3">ROC</Heading>
+              <img src="@rocUrl" alt="Loading..." class="img-fluid">
+            </Column>
+          </Row>
+
+          <Heading Size="HeadingSize.Is3">Cross Table</Heading>
+          <Table Bordered Striped Narrow>
+            <TableHeader>
+              <TableRow>
+                <TableHeaderCell>&</TableHeaderCell>
+                @foreach (var variable in infoResponse.CrossTab.Keys.Order())
+                {
+                  <TableHeaderCell>@variable</TableHeaderCell>
+                }
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+                @foreach (var row in infoResponse.CrossTab.Keys.Order())
+                {
+                  <TableRow>
+                    <TableRowHeader>@row</TableRowHeader>
+                    @foreach (var col in infoResponse.CrossTab[row])
+                    {
+                      <TableRowCell>@col</TableRowCell>
+                    }
+                  </TableRow>
+                }
+            </TableBody>
+          </Table>
         }
       </Container>
     </ModalBody>
@@ -260,7 +314,8 @@
   private ClassificationExecutionResponse execution = null;
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private string mapUrl = "";
-  private PrognosisInfoResponse infoResponse = null;
+  private string rocUrl = "";
+  private ClassificationInfoResponse infoResponse = null;
   private List<string> classHeaders = new();
 
   protected override async Task OnInitializedAsync()
@@ -384,6 +439,7 @@
 
   private async void ShowConfigModal()
   {
+    showingInfo = false;
     classHeaders.Clear();
     classHeaders = (await ClassificationServ.GetValidClassVariables(selectedFileId))
     .Select(ch => ch.ToString())
@@ -438,7 +494,9 @@
 
   private async Task GetTrainInfo()
   {
-    @* infoResponse = await ClassificationServ.GetPrognosisInfo(selectedFileId); *@
+    infoResponse = await ClassificationServ.GetClassificationInfo(selectedFileId);
+    rocUrl = ClassificationServ.GetImageUrl(infoResponse.ROCImageFile);
     showingInfo = true;
+    StateHasChanged();
   }
 }

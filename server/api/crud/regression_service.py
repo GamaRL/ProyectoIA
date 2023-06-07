@@ -132,12 +132,20 @@ def get_predict_info(db: Session, file_id: int):
   model_accuracy_score = accuracy_score(y_validation, y_classified)
   model_roc_img = __create_roc_image__(file, classifier, x_validation, y_validation)
 
+  report = classification_report(y_validation, y_classified, output_dict=True)
+  report.pop("accuracy")
+
+  crosstab = dict()
+
+  for k in matrix.columns.to_list():
+    crosstab[k] = matrix[k].tolist()
+
   return RegressionInfoResponse(
     file_id=settings.file_id,
     accuracy_score=model_accuracy_score,
     roc_image_file=model_roc_img,
-    crosstab=matrix.to_numpy().tolist(),
-    report=classification_report(y_validation, y_classified, output_dict=True)
+    crosstab=crosstab,
+    report=report
   )
 
 def get_prediction(db: Session, file_id: int, row_data = dict[str, float]):

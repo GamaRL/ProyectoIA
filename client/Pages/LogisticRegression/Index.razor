@@ -229,14 +229,6 @@
        <CloseButton />
      </ModalHeader>
      <ModalBody>
-       <Tabs SelectedTab="@selectedTab"
-         SelectedTabChanged="@OnSelectedTabChanged">
-         <Items>
-           <Tab Name="corr">Correlation</Tab>
-           <Tab Name="pca">PCA</Tab>
-         </Items>
-         <Content>
-           <TabPanel Name="corr">
              <Container Fluid Margin="Margin.Is4.FromTop">
                <h3>Correlation Analysis</h3>
                @if (correlationAnalysis != null &&
@@ -268,14 +260,6 @@
                 <img src="@mapUrl" alt="Loading..." class="img-fluid">
               </Row>
             </Container>
-          </TabPanel>
-          <TabPanel Name="pca">
-            <Container>
-              <h3>Pricipal Component Analysis</h3>
-            </Container>
-          </TabPanel>
-        </Content>
-      </Tabs>
     </ModalBody>
     <ModalFooter>
       <Button Color="Color.Danger" Clicked="@HideFeaturesModal">Close</Button>

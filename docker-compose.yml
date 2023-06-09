@@ -24,3 +24,9 @@ services:
       - POSTGRES_PASSWORD=postgres
     depends_on:
       - db
+  client:
+    build: ./client
+    ports:
+      - 3000:80
+    depends_on:
+      - server

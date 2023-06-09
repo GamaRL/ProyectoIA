@@ -273,7 +273,6 @@
   private Modal featuresModalRef = new();
   private float testSize = 1;
   private bool shuffle = false;
-  private string selectedTab = "corr";
   private string mapUrl = "";
   private string rocUrl = "";
   private CorrelationAnalysisResponse correlationAnalysis = null;
@@ -461,12 +460,6 @@
     showingInfo = false;
     configModalRef.Hide();
   }
-
-  private void OnSelectedTabChanged(string name)
-  {
-    selectedTab = name;
-  }
-
   private async Task GetTrainInfo()
   {
     infoResponse = await RegressionServ.GetRegressionInfo(selectedFileId);

@@ -156,7 +156,6 @@
   private DistanceMetric distanceMetric = DistanceMetric.EUCLIDEAN;
   private bool somethingWentWrong = false;
   private Modal modalRef = new();
-  private string selectedTab = "corr";
   private CorrelationAnalysisResponse correlationAnalysis = null;
   private string mapUrl = "";
   private List<ClusterResponse> clusterResponse;
@@ -278,10 +277,5 @@ containsHeaders, cols, distanceMetric, standarizationMethod); *@
   private void HideModal()
   {
     modalRef.Hide();
-  }
-
-  private void OnSelectedTabChanged(string name)
-  {
-    selectedTab = name;
   }
 }
